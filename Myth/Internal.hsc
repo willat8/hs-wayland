@@ -60,17 +60,15 @@ data WlOutput
 data WlSurface
 data Input
 
-data Surface = Surface (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ())
+data Surface = Surface (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()))
 instance Storable Surface where
     sizeOf _    = #{size struct surface}
     alignment _ = #{alignment struct surface}
     peek ptr = do
         c_funp <- #{peek struct surface, configure} ptr
-        return (Surface (mkSurfaceConfigure c_funp))
-    poke ptr (Surface c) = do
-        c_funp <- mkSurfaceConfigureForeign c
+        return (Surface c_funp)
+    poke ptr (Surface c_funp) = do
         #{poke struct surface, configure} ptr c_funp
-        --freeHaskellFunPtr c_funp
 
 data Desktop = Desktop { desktopDisplay    :: Ptr Display
                        , desktopShell      :: Ptr WestonDesktopShell
@@ -129,9 +127,9 @@ instance Storable Output where
         #{poke struct output, output} ptr o_ptr
         #{poke struct output, background} ptr bg_ptr
 
-data Listener = Listener (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ())
-                         (Ptr () -> Ptr WestonDesktopShell -> IO ())
-                         (Ptr () -> Ptr WestonDesktopShell -> CursorType -> IO ())
+data Listener = Listener (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ()))
+                         (FunPtr (Ptr () -> Ptr WestonDesktopShell -> IO ()))
+                         (FunPtr (Ptr () -> Ptr WestonDesktopShell -> CursorType -> IO ()))
 instance Storable Listener where
     sizeOf _    = #{size struct weston_desktop_shell_listener}
     alignment _ = #{alignment struct weston_desktop_shell_listener}
@@ -139,17 +137,11 @@ instance Storable Listener where
         c_funp   <- #{peek struct weston_desktop_shell_listener, configure} ptr
         pls_funp <- #{peek struct weston_desktop_shell_listener, prepare_lock_surface} ptr
         gc_funp  <- #{peek struct weston_desktop_shell_listener, grab_cursor} ptr
-        return (Listener (mkDesktopShellConfigure c_funp) (mkDesktopShellPrepareLockSurface pls_funp) (mkDesktopShellGrabCursor gc_funp))
-    poke ptr (Listener c pls gc) = do
-        c_funp <- mkDesktopShellConfigureForeign c
-        pls_funp <- mkDesktopShellPrepareLockSurfaceForeign pls
-        gc_funp <- mkDesktopShellGrabCursorForeign gc
+        return (Listener c_funp pls_funp gc_funp)
+    poke ptr (Listener c_funp pls_funp gc_funp) = do
         #{poke struct weston_desktop_shell_listener, configure} ptr c_funp
         #{poke struct weston_desktop_shell_listener, prepare_lock_surface} ptr pls_funp
         #{poke struct weston_desktop_shell_listener, grab_cursor} ptr gc_funp
-        --freeHaskellFunPtr c_funp
-        --freeHaskellFunPtr pls_funp
-        --freeHaskellFunPtr gc_funp
 
 foreign import ccall safe "widget_schedule_resize"
     c_widget_schedule_resize :: Ptr Widget -> Int32 -> Int32 -> IO ()

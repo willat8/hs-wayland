@@ -13,8 +13,8 @@ backgroundConfigure d_ptr ds_ptr edges window_ptr w h = do
 desktopShellConfigure d_ptr ds_ptr edges wl_surface_ptr w h = do
     window_ptr <- c_wl_surface_get_user_data wl_surface_ptr >>= return . castPtr :: IO (Ptr Window)
     surface_ptr <- c_window_get_user_data window_ptr >>= return . castPtr :: IO (Ptr Surface)
-    Surface configure <- peek surface_ptr
-    configure d_ptr ds_ptr edges window_ptr w h
+    Surface configure_funp <- peek surface_ptr
+    mkSurfaceConfigure configure_funp d_ptr ds_ptr edges window_ptr w h
 
 desktopShellPrepareLockSurface d_ptr ds_ptr = return ()
 
@@ -26,7 +26,7 @@ backgroundCreate desktop_ptr = do
     bg_fp <- mallocForeignPtr :: IO (ForeignPtr Background)
     withForeignPtr bg_fp $ \bg_ptr -> do
         display_ptr <- peek desktop_ptr >>= return . desktopDisplay
-        let base = Surface backgroundConfigure
+        base <- mkSurfaceConfigureForeign backgroundConfigure >>= return . Surface -- free this funp, via finalizer?
         window_ptr <- c_window_create_custom display_ptr
         widget_ptr <- c_window_add_widget window_ptr (castPtr bg_ptr :: Ptr ())
         poke bg_ptr (Background base window_ptr widget_ptr)
@@ -72,7 +72,10 @@ createOutput desktop_ptr id = do
             else return ()
 
 globalHandler _ id interface_cs version d_ptr = do
-    with (Listener desktopShellConfigure desktopShellPrepareLockSurface desktopShellGrabCursor) $ \l_ptr -> do
+    c_funp   <- mkDesktopShellConfigureForeign desktopShellConfigure -- free this funp, via finalizer?
+    pls_funp <- mkDesktopShellPrepareLockSurfaceForeign desktopShellPrepareLockSurface -- free this funp, via finalizer?
+    gc_funp  <- mkDesktopShellGrabCursorForeign desktopShellGrabCursor -- free this funp, via finalizer?
+    with (Listener c_funp pls_funp gc_funp) $ \l_ptr -> do
         let desktop_ptr = castPtr d_ptr :: Ptr Desktop
         display_ptr <- peek desktop_ptr >>= return . desktopDisplay
         interface <- peekCString interface_cs
