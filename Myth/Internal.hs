@@ -175,6 +175,9 @@ foreign import ccall safe "display_bind"
 foreign import ccall safe "display_create"
     c_display_create :: CInt -> Ptr CString -> IO (Ptr Display)
 
+foreign import ccall safe "display_destroy"
+    c_display_destroy :: Ptr Display -> IO ()
+
 foreign import ccall safe "display_run"
     c_display_run :: Ptr Display -> IO ()
 
@@ -190,6 +193,9 @@ foreign import ccall safe "window_add_widget"
 foreign import ccall safe "window_create_custom"
     c_window_create_custom :: Ptr Display -> IO (Ptr Window)
 
+foreign import ccall safe "window_destroy"
+    c_window_destroy :: Ptr Window -> IO ()
+
 foreign import ccall safe "window_get_user_data"
     c_window_get_user_data :: Ptr Window -> IO (Ptr ())
 
@@ -198,6 +204,9 @@ foreign import ccall safe "window_get_wl_surface"
 
 foreign import ccall safe "window_set_user_data"
     c_window_set_user_data :: Ptr Window -> Ptr () -> IO ()
+
+foreign import ccall safe "widget_destroy"
+    c_widget_destroy :: Ptr Widget -> IO ()
 
 foreign import ccall safe "widget_schedule_resize"
     c_widget_schedule_resize :: Ptr Widget -> Int32 -> Int32 -> IO ()
@@ -211,8 +220,14 @@ foreign import ccall safe "widget_set_enter_handler"
 foreign import ccall safe "widget_set_transparent"
     c_widget_set_transparent :: Ptr Widget -> CInt -> IO ()
 
+foreign import ccall safe "wl_proxy_destroy"
+    c_wl_output_destroy :: Ptr WlOutput -> IO ()
+
 foreign import ccall safe "wl_proxy_add_listener"
     c_weston_desktop_shell_add_listener :: Ptr WestonDesktopShell -> Ptr Listener -> Ptr Desktop -> IO ()
+
+foreign import ccall safe "wl_proxy_destroy"
+    c_weston_desktop_shell_destroy :: Ptr WestonDesktopShell -> IO ()
 
 foreign import ccall safe "wl_proxy_get_user_data"
     c_wl_surface_get_user_data :: Ptr WlSurface -> IO (Ptr ())
@@ -223,17 +238,17 @@ foreign import ccall safe "wl_proxy_marshal"
 c_weston_desktop_shell_desktop_ready :: Ptr WestonDesktopShell -> IO ()
 c_weston_desktop_shell_desktop_ready ds_ptr =
     c_wl_proxy_marshal ds_ptr 5 nullPtr nullPtr
-{-# LINE 200 "Myth/Internal.hsc" #-}
+{-# LINE 215 "Myth/Internal.hsc" #-}
 
 c_weston_desktop_shell_set_background :: Ptr WestonDesktopShell -> Ptr WlOutput -> Ptr WlSurface -> IO ()
 c_weston_desktop_shell_set_background ds_ptr wlo_ptr s_ptr =
     c_wl_proxy_marshal ds_ptr 0 (castPtr wlo_ptr :: Ptr ()) (castPtr s_ptr :: Ptr ())
-{-# LINE 204 "Myth/Internal.hsc" #-}
+{-# LINE 219 "Myth/Internal.hsc" #-}
 
 c_weston_desktop_shell_set_grab_surface :: Ptr WestonDesktopShell -> Ptr WlSurface -> IO ()
 c_weston_desktop_shell_set_grab_surface ds_ptr s_ptr =
     c_wl_proxy_marshal ds_ptr 4 (castPtr s_ptr :: Ptr ()) nullPtr
-{-# LINE 208 "Myth/Internal.hsc" #-}
+{-# LINE 223 "Myth/Internal.hsc" #-}
 
 foreign import ccall "wrapper"
     mkSurfaceConfigureForeign ::            (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->

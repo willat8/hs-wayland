@@ -75,9 +75,9 @@ createOutput desktop_ptr id = do
             else return ()
 
 globalHandler _ id interface_cs version d_ptr = do
-    c_funp   <- mkDesktopShellConfigureForeign desktopShellConfigure -- free this funp, via finalizer?
-    pls_funp <- mkDesktopShellPrepareLockSurfaceForeign desktopShellPrepareLockSurface -- free this funp, via finalizer?
-    gc_funp  <- mkDesktopShellGrabCursorForeign desktopShellGrabCursor -- free this funp, via finalizer?
+    c_funp   <- mkDesktopShellConfigureForeign desktopShellConfigure
+    pls_funp <- mkDesktopShellPrepareLockSurfaceForeign desktopShellPrepareLockSurface
+    gc_funp  <- mkDesktopShellGrabCursorForeign desktopShellGrabCursor
     with (Listener c_funp pls_funp gc_funp) $ \l_ptr -> do
         let desktop_ptr = castPtr d_ptr :: Ptr Desktop
         display_ptr <- peek desktop_ptr >>= return . desktopDisplay
@@ -112,6 +112,12 @@ main = do
         -- Clean up
         freeHaskellFunPtr gseh_funp
         freeHaskellFunPtr gh_funp
-        -- Mimic all memory freeing from the C code (throughout the code)
+        peek desktop_ptr >>= c_widget_destroy . desktopWidget
+        peek desktop_ptr >>= c_window_destroy . desktopWindow
+        peek bg_ptr >>= c_widget_destroy . backgroundWidget
+        peek bg_ptr >>= c_window_destroy . backgroundWindow
+        peek o_ptr >>= c_wl_output_destroy . outputWlOutput
+        peek desktop_ptr >>= c_weston_desktop_shell_destroy . desktopShell
+        peek desktop_ptr >>= c_display_destroy . desktopDisplay
     return 0
 
