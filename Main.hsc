@@ -48,8 +48,8 @@ grabSurfaceCreate desktop_ptr = do
     c_widget_set_allocation widget_ptr 0 0 1 1
     gseh_funp <- mkGrabSurfaceEnterHandlerForeign grabSurfaceEnterHandler
     c_widget_set_enter_handler widget_ptr gseh_funp
-    --freeHaskellFunPtr gseh_funp
     peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopWindow = window_ptr, desktopWidget = widget_ptr }
+    return gseh_funp
 
 outputInit o_ptr desktop_ptr = do
     ds_ptr <- peek desktop_ptr >>= return . desktopShell
@@ -75,7 +75,7 @@ globalHandler _ id interface_cs version d_ptr = do
     with (Listener desktopShellConfigure desktopShellPrepareLockSurface desktopShellGrabCursor) $ \l_ptr -> do
         let desktop_ptr = castPtr d_ptr :: Ptr Desktop
         display_ptr <- peek desktop_ptr >>= return . desktopDisplay
-        interface <- peekCString interface_cs -- Where is this freed?
+        interface <- peekCString interface_cs
         if interface == "weston_desktop_shell"
             then do ds_ptr <- c_display_bind display_ptr id c_weston_desktop_shell_interface 1 >>= return . castPtr :: IO (Ptr WestonDesktopShell)
                     peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopShell = ds_ptr }
@@ -101,9 +101,10 @@ main = do
         if bg_ptr == nullPtr
             then outputInit o_ptr desktop_ptr
             else return ()
-        grabSurfaceCreate desktop_ptr
+        gseh_funp <- grabSurfaceCreate desktop_ptr
         c_display_run display_ptr
         -- Clean up
+        freeHaskellFunPtr gseh_funp
         freeHaskellFunPtr gh_funp
     return 0
 
