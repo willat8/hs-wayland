@@ -29,7 +29,7 @@ backgroundCreate desktop_ptr = do
     bg_fp <- mallocForeignPtr :: IO (ForeignPtr Background)
     withForeignPtr bg_fp $ \bg_ptr -> do
         display_ptr <- peek desktop_ptr >>= return . desktopDisplay
-        base <- mkSurfaceConfigureForeign backgroundConfigure >>= return . Surface -- free this funp, via finalizer?
+        base <- mkSurfaceConfigureForeign backgroundConfigure >>= return . Surface
         window_ptr <- c_window_create_custom display_ptr
         widget_ptr <- c_window_add_widget window_ptr (castPtr bg_ptr :: Ptr ())
         poke bg_ptr (Background base window_ptr widget_ptr)
@@ -112,5 +112,6 @@ main = do
         -- Clean up
         freeHaskellFunPtr gseh_funp
         freeHaskellFunPtr gh_funp
+        -- Mimic all memory freeing from the C code (throughout the code)
     return 0
 

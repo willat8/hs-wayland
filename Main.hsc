@@ -110,5 +110,6 @@ main = do
         -- Clean up
         freeHaskellFunPtr gseh_funp
         freeHaskellFunPtr gh_funp
+        -- Mimic all memory freeing from the C code (throughout the code)
     return 0
 
