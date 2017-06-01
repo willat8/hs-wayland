@@ -143,56 +143,8 @@ instance Storable Listener where
         #{poke struct weston_desktop_shell_listener, prepare_lock_surface} ptr pls_funp
         #{poke struct weston_desktop_shell_listener, grab_cursor} ptr gc_funp
 
-foreign import ccall safe "widget_schedule_resize"
-    c_widget_schedule_resize :: Ptr Widget -> Int32 -> Int32 -> IO ()
-
-foreign import ccall safe "window_get_user_data"
-    c_window_get_user_data :: Ptr Window -> IO (Ptr ())
-
-foreign import ccall safe "wl_proxy_get_user_data"
-    c_wl_surface_get_user_data :: Ptr WlSurface -> IO (Ptr ())
-
-foreign import ccall safe "window_create_custom"
-    c_window_create_custom :: Ptr Display -> IO (Ptr Window)
-
-foreign import ccall safe "window_add_widget"
-    c_window_add_widget :: Ptr Window -> Ptr () -> IO (Ptr Widget)
-
-foreign import ccall safe "window_set_user_data"
-    c_window_set_user_data :: Ptr Window -> Ptr () -> IO ()
-
-foreign import ccall safe "widget_set_transparent"
-    c_widget_set_transparent :: Ptr Widget -> CInt -> IO ()
-
-foreign import ccall safe "window_get_wl_surface"
-    c_window_get_wl_surface :: Ptr Window -> IO (Ptr WlSurface)
-
-c_weston_desktop_shell_set_grab_surface :: Ptr WestonDesktopShell -> Ptr WlSurface -> IO ()
-c_weston_desktop_shell_set_grab_surface ds_ptr s_ptr =
-    c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_GRAB_SURFACE} (castPtr s_ptr :: Ptr ()) nullPtr
-
-foreign import ccall safe "widget_set_allocation"
-    c_widget_set_allocation :: Ptr Widget -> CInt -> CInt -> CInt -> CInt -> IO ()
-
-foreign import ccall safe "widget_set_enter_handler"
-    c_widget_set_enter_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr Input -> Float -> Float -> Ptr () -> IO (CursorType)) -> IO ()
-
-foreign import ccall safe "wl_proxy_marshal"
-    c_wl_proxy_marshal :: Ptr WestonDesktopShell -> CInt -> Ptr () -> Ptr () -> IO ()
-
-c_weston_desktop_shell_set_background :: Ptr WestonDesktopShell -> Ptr WlOutput -> Ptr WlSurface -> IO ()
-c_weston_desktop_shell_set_background ds_ptr wlo_ptr s_ptr =
-    c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_BACKGROUND} (castPtr wlo_ptr :: Ptr ()) (castPtr s_ptr :: Ptr ())
-
 foreign import ccall safe "display_bind"
     c_display_bind :: Ptr Display -> Word32 -> Ptr WlOutputInterface -> CInt -> IO (Ptr WlOutput)
-
-foreign import ccall safe "wl_proxy_add_listener"
-    c_weston_desktop_shell_add_listener :: Ptr WestonDesktopShell -> Ptr Listener -> Ptr Desktop -> IO ()
-
-c_weston_desktop_shell_desktop_ready :: Ptr WestonDesktopShell -> IO ()
-c_weston_desktop_shell_desktop_ready ds_ptr =
-    c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_DESKTOP_READY} nullPtr nullPtr
 
 foreign import ccall safe "display_create"
     c_display_create :: CInt -> Ptr CString -> IO (Ptr Display)
@@ -200,11 +152,59 @@ foreign import ccall safe "display_create"
 foreign import ccall safe "display_run"
     c_display_run :: Ptr Display -> IO ()
 
+foreign import ccall safe "display_set_global_handler"
+    c_display_set_global_handler :: Ptr Display -> FunPtr (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()) -> IO ()
+
 foreign import ccall safe "display_set_user_data"
     c_display_set_user_data :: Ptr Display -> Ptr () -> IO ()
 
-foreign import ccall safe "display_set_global_handler"
-    c_display_set_global_handler :: Ptr Display -> FunPtr (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()) -> IO ()
+foreign import ccall safe "window_add_widget"
+    c_window_add_widget :: Ptr Window -> Ptr () -> IO (Ptr Widget)
+
+foreign import ccall safe "window_create_custom"
+    c_window_create_custom :: Ptr Display -> IO (Ptr Window)
+
+foreign import ccall safe "window_get_user_data"
+    c_window_get_user_data :: Ptr Window -> IO (Ptr ())
+
+foreign import ccall safe "window_get_wl_surface"
+    c_window_get_wl_surface :: Ptr Window -> IO (Ptr WlSurface)
+
+foreign import ccall safe "window_set_user_data"
+    c_window_set_user_data :: Ptr Window -> Ptr () -> IO ()
+
+foreign import ccall safe "widget_schedule_resize"
+    c_widget_schedule_resize :: Ptr Widget -> Int32 -> Int32 -> IO ()
+
+foreign import ccall safe "widget_set_allocation"
+    c_widget_set_allocation :: Ptr Widget -> CInt -> CInt -> CInt -> CInt -> IO ()
+
+foreign import ccall safe "widget_set_enter_handler"
+    c_widget_set_enter_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr Input -> Float -> Float -> Ptr () -> IO (CursorType)) -> IO ()
+
+foreign import ccall safe "widget_set_transparent"
+    c_widget_set_transparent :: Ptr Widget -> CInt -> IO ()
+
+foreign import ccall safe "wl_proxy_add_listener"
+    c_weston_desktop_shell_add_listener :: Ptr WestonDesktopShell -> Ptr Listener -> Ptr Desktop -> IO ()
+
+foreign import ccall safe "wl_proxy_get_user_data"
+    c_wl_surface_get_user_data :: Ptr WlSurface -> IO (Ptr ())
+
+foreign import ccall safe "wl_proxy_marshal"
+    c_wl_proxy_marshal :: Ptr WestonDesktopShell -> CInt -> Ptr () -> Ptr () -> IO ()
+
+c_weston_desktop_shell_desktop_ready :: Ptr WestonDesktopShell -> IO ()
+c_weston_desktop_shell_desktop_ready ds_ptr =
+    c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_DESKTOP_READY} nullPtr nullPtr
+
+c_weston_desktop_shell_set_background :: Ptr WestonDesktopShell -> Ptr WlOutput -> Ptr WlSurface -> IO ()
+c_weston_desktop_shell_set_background ds_ptr wlo_ptr s_ptr =
+    c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_BACKGROUND} (castPtr wlo_ptr :: Ptr ()) (castPtr s_ptr :: Ptr ())
+
+c_weston_desktop_shell_set_grab_surface :: Ptr WestonDesktopShell -> Ptr WlSurface -> IO ()
+c_weston_desktop_shell_set_grab_surface ds_ptr s_ptr =
+    c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_GRAB_SURFACE} (castPtr s_ptr :: Ptr ()) nullPtr
 
 foreign import ccall "wrapper"
     mkSurfaceConfigureForeign ::            (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
@@ -233,16 +233,4 @@ foreign import ccall "wrapper"
 foreign import ccall "dynamic"
     mkSurfaceConfigure :: FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
                                  (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ())
-
-foreign import ccall "dynamic"
-    mkDesktopShellConfigure :: FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ()) ->
-                                      (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ())
-
-foreign import ccall "dynamic"
-    mkDesktopShellPrepareLockSurface :: FunPtr (Ptr () -> Ptr WestonDesktopShell -> IO ()) ->
-                                               (Ptr () -> Ptr WestonDesktopShell -> IO ())
-
-foreign import ccall "dynamic"
-    mkDesktopShellGrabCursor :: FunPtr (Ptr () -> Ptr WestonDesktopShell -> CursorType -> IO ()) ->
-                                       (Ptr () -> Ptr WestonDesktopShell -> CursorType -> IO ())
 
