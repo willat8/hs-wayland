@@ -7,8 +7,9 @@ import Foreign.C.Types
 
 backgroundConfigure d_ptr ds_ptr edges window_ptr w h = do
     bg_ptr <- c_window_get_user_data window_ptr >>= return . castPtr :: IO (Ptr Background)
-    widget_ptr <- peek bg_ptr >>= return . backgroundWidget
+    Background (Surface configure_funp) _ widget_ptr <- peek bg_ptr
     c_widget_schedule_resize widget_ptr w h
+    freeHaskellFunPtr configure_funp
 
 desktopShellConfigure d_ptr ds_ptr edges wl_surface_ptr w h = do
     window_ptr <- c_wl_surface_get_user_data wl_surface_ptr >>= return . castPtr :: IO (Ptr Window)
@@ -26,7 +27,7 @@ backgroundCreate desktop_ptr = do
     bg_fp <- mallocForeignPtr :: IO (ForeignPtr Background)
     withForeignPtr bg_fp $ \bg_ptr -> do
         display_ptr <- peek desktop_ptr >>= return . desktopDisplay
-        base <- mkSurfaceConfigureForeign backgroundConfigure >>= return . Surface -- free this funp, via finalizer?
+        base <- mkSurfaceConfigureForeign backgroundConfigure >>= return . Surface
         window_ptr <- c_window_create_custom display_ptr
         widget_ptr <- c_window_add_widget window_ptr (castPtr bg_ptr :: Ptr ())
         poke bg_ptr (Background base window_ptr widget_ptr)
