@@ -7,10 +7,10 @@ westondeps = ../weston/protocol/weston_desktop_shell-weston-desktop-shell-protoc
 all: hsmyth
 .PHONY: all
 
-Main.hs: Main.hsc Myth/Internal.hsc
+Myth/Internal.hs: Myth/Internal.hsc
 	hsc2hs $(CFLAGS) $^
 
-hsmyth: Main.hs $(westondeps)
+hsmyth: Myth/Internal.hs Main.hs $(westondeps)
 	ghc -o $@ --make $(LDLIBS) $^
 
 install:
