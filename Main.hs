@@ -112,6 +112,5 @@ main = do
         peek o_ptr >>= c_wl_output_destroy . outputWlOutput
         peek desktop_ptr >>= c_weston_desktop_shell_destroy . desktopShell
         -- Figure out which foreign calls can be safe vs unsafe
-        -- Figure out how to minimise repetition in Makefile
     return 0
 

@@ -6,8 +6,8 @@ import Foreign.Ptr
 import Foreign.C.String
 import Foreign.C.Types
 
-#include "window.h"
-#include "weston-desktop-shell-client-protocol.h"
+#include "../C/window.h"
+#include "../C/weston-desktop-shell-client-protocol.h"
 
 #{def struct surface {
     void (*configure)(void *data,

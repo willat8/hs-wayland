@@ -1,5 +1,6 @@
 *
-!*.h
+!C
+!C/*.h
 !Makefile
 !*.hsc
 !*.hs

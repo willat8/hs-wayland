@@ -10,8 +10,8 @@ all: hsmyth
 Myth/Internal.hs: Myth/Internal.hsc
 	hsc2hs $(CFLAGS) $^
 
-hsmyth: Myth/Internal.hs Main.hs $(westondeps)
-	ghc -o $@ --make $(LDLIBS) $^
+hsmyth: Myth/Internal.hs Main.hs
+	ghc -o $@ --make $(LDLIBS) Main $(westondeps)
 
 install:
 	install -m755 -o root -g root hsmyth /usr/local/bin/myth
