@@ -175,8 +175,8 @@ foreign import ccall safe "display_bind"
 foreign import ccall safe "display_create"
     c_display_create :: CInt -> Ptr CString -> IO (Ptr Display)
 
-foreign import ccall safe "display_destroy"
-    c_display_destroy :: Ptr Display -> IO ()
+foreign import ccall unsafe "&display_destroy"
+    c_display_destroy :: FinalizerPtr Display
 
 foreign import ccall safe "display_run"
     c_display_run :: Ptr Display -> IO ()

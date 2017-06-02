@@ -26,8 +26,7 @@ desktopShellGrabCursor d_ptr ds_ptr c = do
     peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopCursorType = c }
 
 backgroundCreate desktop_ptr = do
-    bg_fp <- mallocForeignPtr :: IO (ForeignPtr Background)
-    withForeignPtr bg_fp $ \bg_ptr -> do
+    mallocForeignPtr >>= \bg_fp -> withForeignPtr bg_fp $ \bg_ptr -> do
         display_ptr <- peek desktop_ptr >>= return . desktopDisplay
         base <- mkSurfaceConfigureForeign backgroundConfigure >>= return . Surface
         window_ptr <- c_window_create_custom display_ptr
@@ -35,7 +34,7 @@ backgroundCreate desktop_ptr = do
         poke bg_ptr (Background base window_ptr widget_ptr)
         c_window_set_user_data window_ptr (castPtr bg_ptr :: Ptr ())
         c_widget_set_transparent widget_ptr 0
-    return bg_fp
+        return bg_fp
 
 grabSurfaceEnterHandler widget_ptr input_ptr x y d_ptr = do
     let desktop_ptr = castPtr d_ptr :: Ptr Desktop
@@ -57,8 +56,7 @@ grabSurfaceCreate desktop_ptr = do
 outputInit o_ptr desktop_ptr = do
     ds_ptr <- peek desktop_ptr >>= return . desktopShell
     wlo_ptr <- peek o_ptr >>= return . outputWlOutput
-    bg_fp <- backgroundCreate desktop_ptr
-    withForeignPtr bg_fp $ \bg_ptr -> do
+    backgroundCreate desktop_ptr >>= \bg_fp -> withForeignPtr bg_fp $ \bg_ptr -> do
         window_ptr <- peek bg_ptr >>= return . backgroundWindow
         s <- c_window_get_wl_surface window_ptr
         c_weston_desktop_shell_set_background ds_ptr wlo_ptr s
@@ -66,8 +64,7 @@ outputInit o_ptr desktop_ptr = do
 createOutput desktop_ptr id = do
     Desktop display_ptr ds_ptr _ _ _ gc <- peek desktop_ptr
     wlo_ptr <- c_display_bind display_ptr id c_wl_output_interface 2
-    o_fp <- mallocForeignPtr :: IO (ForeignPtr Output)
-    withForeignPtr o_fp $ \o_ptr -> do
+    mallocForeignPtr >>= \o_fp -> withForeignPtr o_fp $ \o_ptr -> do
         peek o_ptr >>= \o -> poke o_ptr o { outputWlOutput = wlo_ptr }
         peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopOutput = o_ptr }
         if ds_ptr /= nullPtr
@@ -91,13 +88,11 @@ globalHandler _ id interface_cs version d_ptr = do
             then createOutput desktop_ptr id
             else return ()
 
-displayCreate = alloca $ \argv -> c_display_create 0 argv >>= newForeignPtr finalizerFree
+displayCreate = alloca $ \argv -> c_display_create 0 argv >>= newForeignPtr c_display_destroy
 
 main = do
-    desktop_fp <- mallocForeignPtr :: IO (ForeignPtr Desktop)
-    display_fp <- displayCreate
-    withForeignPtr display_fp $ \display_ptr -> do
-    withForeignPtr desktop_fp $ \desktop_ptr -> do
+    mallocForeignPtr >>= \desktop_fp -> withForeignPtr desktop_fp $ \desktop_ptr -> do
+    displayCreate >>= \display_fp -> withForeignPtr display_fp $ \display_ptr -> do
         peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopDisplay = display_ptr }
         gh_funp <- mkGlobalHandlerForeign globalHandler
         c_display_set_user_data display_ptr (castPtr desktop_ptr :: Ptr ())
@@ -118,6 +113,5 @@ main = do
         peek bg_ptr >>= c_window_destroy . backgroundWindow
         peek o_ptr >>= c_wl_output_destroy . outputWlOutput
         peek desktop_ptr >>= c_weston_desktop_shell_destroy . desktopShell
-        peek desktop_ptr >>= c_display_destroy . desktopDisplay
     return 0
 
