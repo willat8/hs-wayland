@@ -18,8 +18,8 @@ drawStatus xpsurface w h = XP.renderWith xpsurface $ do
         corner_radius = sq_h / 10
         radius = corner_radius / aspect
         degrees = pi / 180
-        x = 160
-        y = 190
+        x = 160 -- Initial x
+        y = (fromIntegral h - sq_h) / 2
     XP.newPath
     XP.arc (x + sq_w - radius) (y + radius) radius (-90 * degrees) (0 * degrees)
     XP.arc (x + sq_w - radius) (y + sq_h - radius) radius (0 * degrees) (90 * degrees)
