@@ -4,10 +4,32 @@ import Foreign
 import Foreign.Ptr
 import Foreign.C.String
 import Foreign.C.Types
+import qualified Graphics.Rendering.Cairo as XP
 import qualified Graphics.Rendering.Cairo.Types as XP
 
-drawStatus xpsurface w h = return ()
-    -- renderWith ...
+drawStatus xpsurface w h = XP.renderWith xpsurface $ do
+    XP.setOperator XP.OperatorSource
+    XP.setSourceRGBA 0 0 0 0
+    XP.paint
+    XP.setOperator XP.OperatorOver
+    let w = 100
+        h = 100
+        aspect = 1
+        corner_radius = h / 10
+        radius = corner_radius / aspect
+        degrees = pi / 180
+        x = 160
+        y = 190
+    XP.newPath
+    XP.arc (x + w - radius) (y + radius) radius (-90 * degrees) (0 * degrees)
+    XP.arc (x + w - radius) (y + h - radius) radius (0 * degrees) (90 * degrees)
+    XP.arc (x + radius) (y + h - radius) radius (90 * degrees) (180 * degrees)
+    XP.arc (x + radius) (y + radius) radius (180 * degrees) (270 * degrees)
+    XP.closePath
+    XP.setSourceRGB (148 / 256) (194 / 256) (105 / 256)
+    XP.fillPreserve
+    XP.setLineWidth 10
+    XP.stroke
 
 redrawHandler widget_ptr d_ptr = do
     Status _ window_ptr _ w h <- peek $ castPtr d_ptr
