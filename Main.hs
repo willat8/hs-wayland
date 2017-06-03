@@ -128,6 +128,8 @@ main = do
         freeHaskellFunPtr rh_funp
         freeHaskellFunPtr gseh_funp
         freeHaskellFunPtr gh_funp
+        peek status_ptr >>= c_widget_destroy . statusWidget
+        peek status_ptr >>= c_window_destroy . statusWindow
         peek desktop_ptr >>= c_widget_destroy . desktopWidget
         peek desktop_ptr >>= c_window_destroy . desktopWindow
         peek bg_ptr >>= c_widget_destroy . backgroundWidget
