@@ -7,23 +7,16 @@ import Foreign.C.Types
 import qualified Graphics.Rendering.Cairo as XP
 import qualified Graphics.Rendering.Cairo.Types as XP
 
-drawStatus xpsurface w h = XP.renderWith xpsurface $ do
-    XP.setOperator XP.OperatorSource
-    XP.setSourceRGBA 0 0 0 0
-    XP.paint
-    XP.setOperator XP.OperatorOver
-    let sq_w = 100
-        sq_h = sq_w
+drawSquare w x y = do
+    let h = w
         aspect = 1
-        corner_radius = sq_h / 10
+        corner_radius = h / 10
         radius = corner_radius / aspect
         degrees = pi / 180
-        x = 160 -- Initial x
-        y = (fromIntegral h - sq_h) / 2
     XP.newPath
-    XP.arc (x + sq_w - radius) (y + radius) radius (-90 * degrees) (0 * degrees)
-    XP.arc (x + sq_w - radius) (y + sq_h - radius) radius (0 * degrees) (90 * degrees)
-    XP.arc (x + radius) (y + sq_h - radius) radius (90 * degrees) (180 * degrees)
+    XP.arc (x + w - radius) (y + radius) radius (-90 * degrees) (0 * degrees)
+    XP.arc (x + w - radius) (y + h - radius) radius (0 * degrees) (90 * degrees)
+    XP.arc (x + radius) (y + h - radius) radius (90 * degrees) (180 * degrees)
     XP.arc (x + radius) (y + radius) radius (180 * degrees) (270 * degrees)
     XP.closePath
     XP.setSourceRGB (148 / 256) (194 / 256) (105 / 256)
@@ -32,11 +25,23 @@ drawStatus xpsurface w h = XP.renderWith xpsurface $ do
     XP.setLineWidth 10
     XP.stroke
 
+drawStatus xpsurface w h = XP.renderWith xpsurface $ do
+    XP.setOperator XP.OperatorSource
+    XP.setSourceRGBA 0 0 0 0
+    XP.paint
+    XP.setOperator XP.OperatorOver
+    let sq_dim = 100
+    let init_x = 160
+    let y = (h - sq_dim) / 2
+    drawSquare sq_dim init_x y
+    drawSquare sq_dim ((w - sq_dim) / 2) y
+    drawSquare sq_dim (w - init_x - sq_dim) y
+
 redrawHandler widget_ptr d_ptr = do
     Status _ window_ptr _ w h <- peek $ castPtr d_ptr
     xpsurface <- c_window_get_surface window_ptr >>= XP.mkSurface
     XP.manageSurface xpsurface
-    drawStatus xpsurface w h
+    drawStatus xpsurface (fromIntegral w) (fromIntegral h)
 
 statusConfigure status_ptr = do
     Status _ window_ptr widget_ptr w h <- peek status_ptr
