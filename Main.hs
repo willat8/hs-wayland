@@ -6,41 +6,45 @@ import Foreign.C.String
 import Foreign.C.Types
 import qualified Graphics.Rendering.Cairo.Types as XP
 
+drawStatus xpsurface w h = return ()
+    -- renderWith ...
+
 redrawHandler widget_ptr d_ptr = do
-    let status_ptr = castPtr d_ptr :: Ptr Status
-    xpsurface <- peek status_ptr >>= c_window_get_surface . statusWindow >>= XP.mkSurface
+    Status _ window_ptr _ w h <- peek $ castPtr d_ptr
+    xpsurface <- c_window_get_surface window_ptr >>= XP.mkSurface
     XP.manageSurface xpsurface
+    drawStatus xpsurface w h
 
 statusConfigure status_ptr = do
-    Status _ window_ptr widget_ptr <- peek status_ptr
+    Status _ window_ptr widget_ptr w h <- peek status_ptr
     rh_funp <- mkRedrawHandlerForeign redrawHandler
     c_widget_set_redraw_handler widget_ptr rh_funp
-    c_window_schedule_resize window_ptr 800 480
+    c_window_schedule_resize window_ptr w h
     return rh_funp
 
-statusCreate display_ptr = do
+statusCreate display_ptr w h = do
     mallocForeignPtr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
         window_ptr <- c_window_create display_ptr
-        widget_ptr <- c_window_add_widget window_ptr (castPtr status_ptr :: Ptr ())
-        poke status_ptr (Status display_ptr window_ptr widget_ptr)
+        widget_ptr <- c_window_add_widget window_ptr $ castPtr status_ptr
+        poke status_ptr (Status display_ptr window_ptr widget_ptr w h)
         return status_fp
 
 backgroundConfigure d_ptr ds_ptr edges window_ptr w h = do
-    bg_ptr <- c_window_get_user_data window_ptr >>= return . castPtr :: IO (Ptr Background)
+    bg_ptr <- c_window_get_user_data window_ptr >>= return . castPtr
     Background (Surface configure_funp) _ widget_ptr <- peek bg_ptr
     c_widget_schedule_resize widget_ptr w h
     freeHaskellFunPtr configure_funp
 
 desktopShellConfigure d_ptr ds_ptr edges wl_surface_ptr w h = do
-    window_ptr <- c_wl_surface_get_user_data wl_surface_ptr >>= return . castPtr :: IO (Ptr Window)
-    surface_ptr <- c_window_get_user_data window_ptr >>= return . castPtr :: IO (Ptr Surface)
+    window_ptr <- c_wl_surface_get_user_data wl_surface_ptr >>= return . castPtr
+    surface_ptr <- c_window_get_user_data window_ptr >>= return . castPtr
     Surface configure_funp <- peek surface_ptr
     mkSurfaceConfigure configure_funp d_ptr ds_ptr edges window_ptr w h
 
 desktopShellPrepareLockSurface d_ptr ds_ptr = return ()
 
 desktopShellGrabCursor d_ptr ds_ptr c = do
-    let desktop_ptr = castPtr d_ptr :: Ptr Desktop
+    let desktop_ptr = castPtr d_ptr
     peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopCursorType = c }
 
 backgroundCreate desktop_ptr = do
@@ -48,23 +52,23 @@ backgroundCreate desktop_ptr = do
         display_ptr <- peek desktop_ptr >>= return . desktopDisplay
         base <- mkSurfaceConfigureForeign backgroundConfigure >>= return . Surface
         window_ptr <- c_window_create_custom display_ptr
-        widget_ptr <- c_window_add_widget window_ptr (castPtr bg_ptr :: Ptr ())
+        widget_ptr <- c_window_add_widget window_ptr $ castPtr bg_ptr
         poke bg_ptr (Background base window_ptr widget_ptr)
-        c_window_set_user_data window_ptr (castPtr bg_ptr :: Ptr ())
+        c_window_set_user_data window_ptr $ castPtr bg_ptr
         c_widget_set_transparent widget_ptr 0
         return bg_fp
 
 grabSurfaceEnterHandler widget_ptr input_ptr x y d_ptr = do
-    let desktop_ptr = castPtr d_ptr :: Ptr Desktop
+    let desktop_ptr = castPtr d_ptr
     peek desktop_ptr >>= return . desktopCursorType
 
 grabSurfaceCreate desktop_ptr = do
     Desktop display_ptr ds_ptr _ _ _ _ <- peek desktop_ptr
     window_ptr <- c_window_create_custom display_ptr
-    c_window_set_user_data window_ptr (castPtr desktop_ptr :: Ptr ())
+    c_window_set_user_data window_ptr $ castPtr desktop_ptr
     s <- c_window_get_wl_surface window_ptr
     c_weston_desktop_shell_set_grab_surface ds_ptr s
-    widget_ptr <- c_window_add_widget window_ptr (castPtr desktop_ptr :: Ptr ())
+    widget_ptr <- c_window_add_widget window_ptr $ castPtr desktop_ptr
     c_widget_set_allocation widget_ptr 0 0 1 1
     gseh_funp <- mkGrabSurfaceEnterHandlerForeign grabSurfaceEnterHandler
     c_widget_set_enter_handler widget_ptr gseh_funp
@@ -94,11 +98,11 @@ globalHandler _ id interface_cs version d_ptr = do
     pls_funp <- mkDesktopShellPrepareLockSurfaceForeign desktopShellPrepareLockSurface
     gc_funp  <- mkDesktopShellGrabCursorForeign desktopShellGrabCursor
     with (Listener c_funp pls_funp gc_funp) $ \l_ptr -> do
-        let desktop_ptr = castPtr d_ptr :: Ptr Desktop
+        let desktop_ptr = castPtr d_ptr
         display_ptr <- peek desktop_ptr >>= return . desktopDisplay
         interface <- peekCString interface_cs
         if interface == "weston_desktop_shell"
-            then do ds_ptr <- c_display_bind display_ptr id c_weston_desktop_shell_interface 1 >>= return . castPtr :: IO (Ptr WestonDesktopShell)
+            then do ds_ptr <- c_display_bind display_ptr id c_weston_desktop_shell_interface 1 >>= return . castPtr
                     peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopShell = ds_ptr }
                     c_weston_desktop_shell_add_listener ds_ptr l_ptr desktop_ptr
                     c_weston_desktop_shell_desktop_ready ds_ptr
@@ -111,10 +115,10 @@ displayCreate = alloca $ \argv -> c_display_create 0 argv >>= newForeignPtr c_di
 main = do
     mallocForeignPtr >>= \desktop_fp -> withForeignPtr desktop_fp $ \desktop_ptr -> do
     displayCreate >>= \display_fp -> withForeignPtr display_fp $ \display_ptr -> do
-    statusCreate display_ptr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
+    statusCreate display_ptr 800 480 >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
         peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopDisplay = display_ptr }
         gh_funp <- mkGlobalHandlerForeign globalHandler
-        c_display_set_user_data display_ptr (castPtr desktop_ptr :: Ptr ())
+        c_display_set_user_data display_ptr $ castPtr desktop_ptr
         c_display_set_global_handler display_ptr gh_funp
         o_ptr <- peek desktop_ptr >>= return . desktopOutput
         bg_ptr <- peek o_ptr >>= return . outputBackground

@@ -47,6 +47,7 @@ import qualified Graphics.Rendering.Cairo.Types as XP
     struct display *display;
     struct window *window;
     struct widget *widget;
+    int width, height;
   };
 }
 
@@ -154,6 +155,8 @@ instance Storable Output where
 data Status = Status { statusDisplay :: Ptr Display
                      , statusWindow  :: Ptr Window
                      , statusWidget  :: Ptr Widget
+                     , statusWidth   :: Int32
+                     , statusHeight  :: Int32
                      }
 instance Storable Status where
     sizeOf _    = #{size struct status}
@@ -162,11 +165,15 @@ instance Storable Status where
         display_ptr <- #{peek struct status, display} ptr
         window_ptr <- #{peek struct status, window} ptr
         widget_ptr <- #{peek struct status, widget} ptr
-        return (Status display_ptr window_ptr widget_ptr)
-    poke ptr (Status display_ptr window_ptr widget_ptr) = do
+        width <- #{peek struct status, width} ptr
+        height <- #{peek struct status, height} ptr
+        return (Status display_ptr window_ptr widget_ptr width height)
+    poke ptr (Status display_ptr window_ptr widget_ptr width height) = do
         #{poke struct status, display} ptr display_ptr
         #{poke struct status, window} ptr window_ptr
         #{poke struct status, widget} ptr widget_ptr
+        #{poke struct status, width} ptr width
+        #{poke struct status, height} ptr height
 
 foreign import ccall unsafe "display_bind"
     c_display_bind :: Ptr Display -> Word32 -> Ptr WlOutputInterface -> CInt -> IO (Ptr WlOutput)

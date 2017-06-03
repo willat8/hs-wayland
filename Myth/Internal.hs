@@ -27,14 +27,14 @@ import qualified Graphics.Rendering.Cairo.Types as XP
 {-# LINE 45 "Myth/Internal.hsc" #-}
 
 
-{-# LINE 52 "Myth/Internal.hsc" #-}
+{-# LINE 53 "Myth/Internal.hsc" #-}
 
 newtype CursorType = CursorType { unCursorType :: CInt }
     deriving (Eq, Show)
 cursorLeftPtr :: CursorType
 cursorLeftPtr = CursorType 4
 
-{-# LINE 56 "Myth/Internal.hsc" #-}
+{-# LINE 57 "Myth/Internal.hsc" #-}
 
 data WlOutputInterface
 foreign import ccall unsafe "&wl_output_interface"
@@ -59,74 +59,74 @@ data Desktop = Desktop { desktopDisplay    :: Ptr Display
                        }
 instance Storable Desktop where
     sizeOf _    = (48)
-{-# LINE 80 "Myth/Internal.hsc" #-}
-    alignment _ = (8)
 {-# LINE 81 "Myth/Internal.hsc" #-}
+    alignment _ = (8)
+{-# LINE 82 "Myth/Internal.hsc" #-}
     peek ptr = do
         d_ptr      <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
-{-# LINE 83 "Myth/Internal.hsc" #-}
-        s_ptr      <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
 {-# LINE 84 "Myth/Internal.hsc" #-}
-        o_ptr      <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
+        s_ptr      <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
 {-# LINE 85 "Myth/Internal.hsc" #-}
-        window_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 24) ptr
+        o_ptr      <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
 {-# LINE 86 "Myth/Internal.hsc" #-}
-        widget_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 32) ptr
+        window_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 24) ptr
 {-# LINE 87 "Myth/Internal.hsc" #-}
-        c          <- (\hsc_ptr -> peekByteOff hsc_ptr 40) ptr
+        widget_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 32) ptr
 {-# LINE 88 "Myth/Internal.hsc" #-}
+        c          <- (\hsc_ptr -> peekByteOff hsc_ptr 40) ptr
+{-# LINE 89 "Myth/Internal.hsc" #-}
         return (Desktop d_ptr s_ptr o_ptr window_ptr widget_ptr (CursorType c))
     poke ptr (Desktop d_ptr s_ptr o_ptr window_ptr widget_ptr c) = do
         (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr d_ptr
-{-# LINE 91 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr s_ptr
 {-# LINE 92 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr o_ptr
+        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr s_ptr
 {-# LINE 93 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 24) ptr window_ptr
+        (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr o_ptr
 {-# LINE 94 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 32) ptr widget_ptr
+        (\hsc_ptr -> pokeByteOff hsc_ptr 24) ptr window_ptr
 {-# LINE 95 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 40) ptr (unCursorType c)
+        (\hsc_ptr -> pokeByteOff hsc_ptr 32) ptr widget_ptr
 {-# LINE 96 "Myth/Internal.hsc" #-}
+        (\hsc_ptr -> pokeByteOff hsc_ptr 40) ptr (unCursorType c)
+{-# LINE 97 "Myth/Internal.hsc" #-}
 
 data Surface = Surface (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()))
 instance Storable Surface where
     sizeOf _    = (8)
-{-# LINE 100 "Myth/Internal.hsc" #-}
-    alignment _ = (8)
 {-# LINE 101 "Myth/Internal.hsc" #-}
+    alignment _ = (8)
+{-# LINE 102 "Myth/Internal.hsc" #-}
     peek ptr = do
         c_funp <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
-{-# LINE 103 "Myth/Internal.hsc" #-}
+{-# LINE 104 "Myth/Internal.hsc" #-}
         return (Surface c_funp)
     poke ptr (Surface c_funp) = do
         (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr c_funp
-{-# LINE 106 "Myth/Internal.hsc" #-}
+{-# LINE 107 "Myth/Internal.hsc" #-}
 
 data Listener = Listener (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ()))
                          (FunPtr (Ptr () -> Ptr WestonDesktopShell -> IO ()))
                          (FunPtr (Ptr () -> Ptr WestonDesktopShell -> CursorType -> IO ()))
 instance Storable Listener where
     sizeOf _    = (24)
-{-# LINE 112 "Myth/Internal.hsc" #-}
-    alignment _ = (8)
 {-# LINE 113 "Myth/Internal.hsc" #-}
+    alignment _ = (8)
+{-# LINE 114 "Myth/Internal.hsc" #-}
     peek ptr = do
         c_funp   <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
-{-# LINE 115 "Myth/Internal.hsc" #-}
-        pls_funp <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
 {-# LINE 116 "Myth/Internal.hsc" #-}
-        gc_funp  <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
+        pls_funp <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
 {-# LINE 117 "Myth/Internal.hsc" #-}
+        gc_funp  <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
+{-# LINE 118 "Myth/Internal.hsc" #-}
         return (Listener c_funp pls_funp gc_funp)
     poke ptr (Listener c_funp pls_funp gc_funp) = do
         (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr c_funp
-{-# LINE 120 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr pls_funp
 {-# LINE 121 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr gc_funp
+        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr pls_funp
 {-# LINE 122 "Myth/Internal.hsc" #-}
+        (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr gc_funp
+{-# LINE 123 "Myth/Internal.hsc" #-}
 
 data Background = Background { backgroundSurface :: Surface
                              , backgroundWindow  :: Ptr Window
@@ -134,69 +134,79 @@ data Background = Background { backgroundSurface :: Surface
                              }
 instance Storable Background where
     sizeOf _    = (24)
-{-# LINE 129 "Myth/Internal.hsc" #-}
-    alignment _ = (8)
 {-# LINE 130 "Myth/Internal.hsc" #-}
+    alignment _ = (8)
+{-# LINE 131 "Myth/Internal.hsc" #-}
     peek ptr = do
         base       <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
-{-# LINE 132 "Myth/Internal.hsc" #-}
-        window_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
 {-# LINE 133 "Myth/Internal.hsc" #-}
-        widget_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
+        window_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
 {-# LINE 134 "Myth/Internal.hsc" #-}
+        widget_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
+{-# LINE 135 "Myth/Internal.hsc" #-}
         return (Background base window_ptr widget_ptr)
     poke ptr (Background base window_ptr widget_ptr) = do
         (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr base
-{-# LINE 137 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr window_ptr
 {-# LINE 138 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr widget_ptr
+        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr window_ptr
 {-# LINE 139 "Myth/Internal.hsc" #-}
+        (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr widget_ptr
+{-# LINE 140 "Myth/Internal.hsc" #-}
 
 data Output = Output { outputWlOutput   :: Ptr WlOutput
                      , outputBackground :: Ptr Background
                      }
 instance Storable Output where
     sizeOf _    = (16)
-{-# LINE 145 "Myth/Internal.hsc" #-}
-    alignment _ = (8)
 {-# LINE 146 "Myth/Internal.hsc" #-}
+    alignment _ = (8)
+{-# LINE 147 "Myth/Internal.hsc" #-}
     peek ptr = do
         o_ptr  <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
-{-# LINE 148 "Myth/Internal.hsc" #-}
-        bg_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
 {-# LINE 149 "Myth/Internal.hsc" #-}
+        bg_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
+{-# LINE 150 "Myth/Internal.hsc" #-}
         return (Output o_ptr bg_ptr)
     poke ptr (Output o_ptr bg_ptr) = do
         (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr o_ptr
-{-# LINE 152 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr bg_ptr
 {-# LINE 153 "Myth/Internal.hsc" #-}
+        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr bg_ptr
+{-# LINE 154 "Myth/Internal.hsc" #-}
 
 data Status = Status { statusDisplay :: Ptr Display
                      , statusWindow  :: Ptr Window
                      , statusWidget  :: Ptr Widget
+                     , statusWidth   :: Int32
+                     , statusHeight  :: Int32
                      }
 instance Storable Status where
-    sizeOf _    = (24)
-{-# LINE 160 "Myth/Internal.hsc" #-}
+    sizeOf _    = (32)
+{-# LINE 163 "Myth/Internal.hsc" #-}
     alignment _ = (8)
-{-# LINE 161 "Myth/Internal.hsc" #-}
+{-# LINE 164 "Myth/Internal.hsc" #-}
     peek ptr = do
         display_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
-{-# LINE 163 "Myth/Internal.hsc" #-}
+{-# LINE 166 "Myth/Internal.hsc" #-}
         window_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
-{-# LINE 164 "Myth/Internal.hsc" #-}
+{-# LINE 167 "Myth/Internal.hsc" #-}
         widget_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
-{-# LINE 165 "Myth/Internal.hsc" #-}
-        return (Status display_ptr window_ptr widget_ptr)
-    poke ptr (Status display_ptr window_ptr widget_ptr) = do
-        (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr display_ptr
 {-# LINE 168 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr window_ptr
+        width <- (\hsc_ptr -> peekByteOff hsc_ptr 24) ptr
 {-# LINE 169 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr widget_ptr
+        height <- (\hsc_ptr -> peekByteOff hsc_ptr 28) ptr
 {-# LINE 170 "Myth/Internal.hsc" #-}
+        return (Status display_ptr window_ptr widget_ptr width height)
+    poke ptr (Status display_ptr window_ptr widget_ptr width height) = do
+        (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr display_ptr
+{-# LINE 173 "Myth/Internal.hsc" #-}
+        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr window_ptr
+{-# LINE 174 "Myth/Internal.hsc" #-}
+        (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr widget_ptr
+{-# LINE 175 "Myth/Internal.hsc" #-}
+        (\hsc_ptr -> pokeByteOff hsc_ptr 24) ptr width
+{-# LINE 176 "Myth/Internal.hsc" #-}
+        (\hsc_ptr -> pokeByteOff hsc_ptr 28) ptr height
+{-# LINE 177 "Myth/Internal.hsc" #-}
 
 foreign import ccall unsafe "display_bind"
     c_display_bind :: Ptr Display -> Word32 -> Ptr WlOutputInterface -> CInt -> IO (Ptr WlOutput)
@@ -279,17 +289,17 @@ foreign import ccall unsafe "wl_proxy_marshal"
 c_weston_desktop_shell_desktop_ready :: Ptr WestonDesktopShell -> IO ()
 c_weston_desktop_shell_desktop_ready ds_ptr =
     c_wl_proxy_marshal ds_ptr 5 nullPtr nullPtr
-{-# LINE 252 "Myth/Internal.hsc" #-}
+{-# LINE 259 "Myth/Internal.hsc" #-}
 
 c_weston_desktop_shell_set_background :: Ptr WestonDesktopShell -> Ptr WlOutput -> Ptr WlSurface -> IO ()
 c_weston_desktop_shell_set_background ds_ptr wlo_ptr s_ptr =
     c_wl_proxy_marshal ds_ptr 0 (castPtr wlo_ptr :: Ptr ()) (castPtr s_ptr :: Ptr ())
-{-# LINE 256 "Myth/Internal.hsc" #-}
+{-# LINE 263 "Myth/Internal.hsc" #-}
 
 c_weston_desktop_shell_set_grab_surface :: Ptr WestonDesktopShell -> Ptr WlSurface -> IO ()
 c_weston_desktop_shell_set_grab_surface ds_ptr s_ptr =
     c_wl_proxy_marshal ds_ptr 4 (castPtr s_ptr :: Ptr ()) nullPtr
-{-# LINE 260 "Myth/Internal.hsc" #-}
+{-# LINE 267 "Myth/Internal.hsc" #-}
 
 foreign import ccall unsafe "wrapper"
     mkRedrawHandlerForeign ::            (Ptr Widget -> Ptr () -> IO ()) ->
