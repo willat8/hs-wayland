@@ -12,22 +12,23 @@ drawStatus xpsurface w h = XP.renderWith xpsurface $ do
     XP.setSourceRGBA 0 0 0 0
     XP.paint
     XP.setOperator XP.OperatorOver
-    let w = 100
-        h = 100
+    let sq_w = 100
+        sq_h = sq_w
         aspect = 1
-        corner_radius = h / 10
+        corner_radius = sq_h / 10
         radius = corner_radius / aspect
         degrees = pi / 180
         x = 160
         y = 190
     XP.newPath
-    XP.arc (x + w - radius) (y + radius) radius (-90 * degrees) (0 * degrees)
-    XP.arc (x + w - radius) (y + h - radius) radius (0 * degrees) (90 * degrees)
-    XP.arc (x + radius) (y + h - radius) radius (90 * degrees) (180 * degrees)
+    XP.arc (x + sq_w - radius) (y + radius) radius (-90 * degrees) (0 * degrees)
+    XP.arc (x + sq_w - radius) (y + sq_h - radius) radius (0 * degrees) (90 * degrees)
+    XP.arc (x + radius) (y + sq_h - radius) radius (90 * degrees) (180 * degrees)
     XP.arc (x + radius) (y + radius) radius (180 * degrees) (270 * degrees)
     XP.closePath
     XP.setSourceRGB (148 / 256) (194 / 256) (105 / 256)
     XP.fillPreserve
+    XP.setSourceRGBA (148 / 256) (194 / 256) (105 / 256) 0.5
     XP.setLineWidth 10
     XP.stroke
 
