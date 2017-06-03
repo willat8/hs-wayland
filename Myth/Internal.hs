@@ -17,10 +17,10 @@ import Foreign.C.Types
 {-# LINE 21 "Myth/Internal.hsc" #-}
 
 
-{-# LINE 28 "Myth/Internal.hsc" #-}
+{-# LINE 27 "Myth/Internal.hsc" #-}
 
 
-{-# LINE 38 "Myth/Internal.hsc" #-}
+{-# LINE 37 "Myth/Internal.hsc" #-}
 
 
 {-# LINE 44 "Myth/Internal.hsc" #-}
@@ -33,9 +33,9 @@ cursorLeftPtr = CursorType 4
 {-# LINE 48 "Myth/Internal.hsc" #-}
 
 data WlOutputInterface
-foreign import ccall "&wl_output_interface"
+foreign import ccall unsafe "&wl_output_interface"
     c_wl_output_interface :: Ptr WlOutputInterface
-foreign import ccall "&weston_desktop_shell_interface"
+foreign import ccall unsafe "&weston_desktop_shell_interface"
     c_weston_desktop_shell_interface :: Ptr WlOutputInterface
 
 data Display
@@ -46,20 +46,6 @@ data WlOutput
 data WlSurface
 data Input
 
-data Surface = Surface (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()))
-instance Storable Surface where
-    sizeOf _    = (8)
-{-# LINE 66 "Myth/Internal.hsc" #-}
-    alignment _ = (8)
-{-# LINE 67 "Myth/Internal.hsc" #-}
-    peek ptr = do
-        c_funp <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
-{-# LINE 69 "Myth/Internal.hsc" #-}
-        return (Surface c_funp)
-    poke ptr (Surface c_funp) = do
-        (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr c_funp
-{-# LINE 72 "Myth/Internal.hsc" #-}
-
 data Desktop = Desktop { desktopDisplay    :: Ptr Display
                        , desktopShell      :: Ptr WestonDesktopShell
                        , desktopOutput     :: Ptr Output
@@ -69,36 +55,94 @@ data Desktop = Desktop { desktopDisplay    :: Ptr Display
                        }
 instance Storable Desktop where
     sizeOf _    = (48)
-{-# LINE 82 "Myth/Internal.hsc" #-}
+{-# LINE 72 "Myth/Internal.hsc" #-}
     alignment _ = (8)
-{-# LINE 83 "Myth/Internal.hsc" #-}
+{-# LINE 73 "Myth/Internal.hsc" #-}
     peek ptr = do
         d_ptr      <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
-{-# LINE 85 "Myth/Internal.hsc" #-}
+{-# LINE 75 "Myth/Internal.hsc" #-}
         s_ptr      <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
-{-# LINE 86 "Myth/Internal.hsc" #-}
+{-# LINE 76 "Myth/Internal.hsc" #-}
         o_ptr      <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
-{-# LINE 87 "Myth/Internal.hsc" #-}
+{-# LINE 77 "Myth/Internal.hsc" #-}
         window_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 24) ptr
-{-# LINE 88 "Myth/Internal.hsc" #-}
+{-# LINE 78 "Myth/Internal.hsc" #-}
         widget_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 32) ptr
-{-# LINE 89 "Myth/Internal.hsc" #-}
+{-# LINE 79 "Myth/Internal.hsc" #-}
         c          <- (\hsc_ptr -> peekByteOff hsc_ptr 40) ptr
-{-# LINE 90 "Myth/Internal.hsc" #-}
+{-# LINE 80 "Myth/Internal.hsc" #-}
         return (Desktop d_ptr s_ptr o_ptr window_ptr widget_ptr (CursorType c))
     poke ptr (Desktop d_ptr s_ptr o_ptr window_ptr widget_ptr c) = do
         (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr d_ptr
-{-# LINE 93 "Myth/Internal.hsc" #-}
+{-# LINE 83 "Myth/Internal.hsc" #-}
         (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr s_ptr
-{-# LINE 94 "Myth/Internal.hsc" #-}
+{-# LINE 84 "Myth/Internal.hsc" #-}
         (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr o_ptr
-{-# LINE 95 "Myth/Internal.hsc" #-}
+{-# LINE 85 "Myth/Internal.hsc" #-}
         (\hsc_ptr -> pokeByteOff hsc_ptr 24) ptr window_ptr
-{-# LINE 96 "Myth/Internal.hsc" #-}
+{-# LINE 86 "Myth/Internal.hsc" #-}
         (\hsc_ptr -> pokeByteOff hsc_ptr 32) ptr widget_ptr
-{-# LINE 97 "Myth/Internal.hsc" #-}
+{-# LINE 87 "Myth/Internal.hsc" #-}
         (\hsc_ptr -> pokeByteOff hsc_ptr 40) ptr (unCursorType c)
+{-# LINE 88 "Myth/Internal.hsc" #-}
+
+data Output = Output { outputWlOutput   :: Ptr WlOutput
+                     , outputBackground :: Ptr Background
+                     }
+instance Storable Output where
+    sizeOf _    = (16)
+{-# LINE 94 "Myth/Internal.hsc" #-}
+    alignment _ = (8)
+{-# LINE 95 "Myth/Internal.hsc" #-}
+    peek ptr = do
+        o_ptr  <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
+{-# LINE 97 "Myth/Internal.hsc" #-}
+        bg_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
 {-# LINE 98 "Myth/Internal.hsc" #-}
+        return (Output o_ptr bg_ptr)
+    poke ptr (Output o_ptr bg_ptr) = do
+        (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr o_ptr
+{-# LINE 101 "Myth/Internal.hsc" #-}
+        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr bg_ptr
+{-# LINE 102 "Myth/Internal.hsc" #-}
+
+data Surface = Surface (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()))
+instance Storable Surface where
+    sizeOf _    = (8)
+{-# LINE 106 "Myth/Internal.hsc" #-}
+    alignment _ = (8)
+{-# LINE 107 "Myth/Internal.hsc" #-}
+    peek ptr = do
+        c_funp <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
+{-# LINE 109 "Myth/Internal.hsc" #-}
+        return (Surface c_funp)
+    poke ptr (Surface c_funp) = do
+        (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr c_funp
+{-# LINE 112 "Myth/Internal.hsc" #-}
+
+data Listener = Listener (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ()))
+                         (FunPtr (Ptr () -> Ptr WestonDesktopShell -> IO ()))
+                         (FunPtr (Ptr () -> Ptr WestonDesktopShell -> CursorType -> IO ()))
+instance Storable Listener where
+    sizeOf _    = (24)
+{-# LINE 118 "Myth/Internal.hsc" #-}
+    alignment _ = (8)
+{-# LINE 119 "Myth/Internal.hsc" #-}
+    peek ptr = do
+        c_funp   <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
+{-# LINE 121 "Myth/Internal.hsc" #-}
+        pls_funp <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
+{-# LINE 122 "Myth/Internal.hsc" #-}
+        gc_funp  <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
+{-# LINE 123 "Myth/Internal.hsc" #-}
+        return (Listener c_funp pls_funp gc_funp)
+    poke ptr (Listener c_funp pls_funp gc_funp) = do
+        (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr c_funp
+{-# LINE 126 "Myth/Internal.hsc" #-}
+        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr pls_funp
+{-# LINE 127 "Myth/Internal.hsc" #-}
+        (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr gc_funp
+{-# LINE 128 "Myth/Internal.hsc" #-}
 
 data Background = Background { backgroundSurface :: Surface
                              , backgroundWindow  :: Ptr Window
@@ -106,73 +150,29 @@ data Background = Background { backgroundSurface :: Surface
                              }
 instance Storable Background where
     sizeOf _    = (24)
-{-# LINE 105 "Myth/Internal.hsc" #-}
-    alignment _ = (8)
-{-# LINE 106 "Myth/Internal.hsc" #-}
-    peek ptr = do
-        base       <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
-{-# LINE 108 "Myth/Internal.hsc" #-}
-        window_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
-{-# LINE 109 "Myth/Internal.hsc" #-}
-        widget_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
-{-# LINE 110 "Myth/Internal.hsc" #-}
-        return (Background base window_ptr widget_ptr)
-    poke ptr (Background base window_ptr widget_ptr) = do
-        (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr base
-{-# LINE 113 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr window_ptr
-{-# LINE 114 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr widget_ptr
-{-# LINE 115 "Myth/Internal.hsc" #-}
-
-data Output = Output { outputWlOutput   :: Ptr WlOutput
-                     , outputBackground :: Ptr Background
-                     }
-instance Storable Output where
-    sizeOf _    = (16)
-{-# LINE 121 "Myth/Internal.hsc" #-}
-    alignment _ = (8)
-{-# LINE 122 "Myth/Internal.hsc" #-}
-    peek ptr = do
-        o_ptr  <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
-{-# LINE 124 "Myth/Internal.hsc" #-}
-        bg_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
-{-# LINE 125 "Myth/Internal.hsc" #-}
-        return (Output o_ptr bg_ptr)
-    poke ptr (Output o_ptr bg_ptr) = do
-        (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr o_ptr
-{-# LINE 128 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr bg_ptr
-{-# LINE 129 "Myth/Internal.hsc" #-}
-
-data Listener = Listener (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ()))
-                         (FunPtr (Ptr () -> Ptr WestonDesktopShell -> IO ()))
-                         (FunPtr (Ptr () -> Ptr WestonDesktopShell -> CursorType -> IO ()))
-instance Storable Listener where
-    sizeOf _    = (24)
 {-# LINE 135 "Myth/Internal.hsc" #-}
     alignment _ = (8)
 {-# LINE 136 "Myth/Internal.hsc" #-}
     peek ptr = do
-        c_funp   <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
+        base       <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
 {-# LINE 138 "Myth/Internal.hsc" #-}
-        pls_funp <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
+        window_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
 {-# LINE 139 "Myth/Internal.hsc" #-}
-        gc_funp  <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
+        widget_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
 {-# LINE 140 "Myth/Internal.hsc" #-}
-        return (Listener c_funp pls_funp gc_funp)
-    poke ptr (Listener c_funp pls_funp gc_funp) = do
-        (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr c_funp
+        return (Background base window_ptr widget_ptr)
+    poke ptr (Background base window_ptr widget_ptr) = do
+        (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr base
 {-# LINE 143 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr pls_funp
+        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr window_ptr
 {-# LINE 144 "Myth/Internal.hsc" #-}
-        (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr gc_funp
+        (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr widget_ptr
 {-# LINE 145 "Myth/Internal.hsc" #-}
 
-foreign import ccall safe "display_bind"
+foreign import ccall unsafe "display_bind"
     c_display_bind :: Ptr Display -> Word32 -> Ptr WlOutputInterface -> CInt -> IO (Ptr WlOutput)
 
-foreign import ccall safe "display_create"
+foreign import ccall unsafe "display_create"
     c_display_create :: CInt -> Ptr CString -> IO (Ptr Display)
 
 foreign import ccall unsafe "&display_destroy"
@@ -184,55 +184,55 @@ foreign import ccall safe "display_run"
 foreign import ccall safe "display_set_global_handler"
     c_display_set_global_handler :: Ptr Display -> FunPtr (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()) -> IO ()
 
-foreign import ccall safe "display_set_user_data"
+foreign import ccall unsafe "display_set_user_data"
     c_display_set_user_data :: Ptr Display -> Ptr () -> IO ()
 
-foreign import ccall safe "window_add_widget"
+foreign import ccall unsafe "window_add_widget"
     c_window_add_widget :: Ptr Window -> Ptr () -> IO (Ptr Widget)
 
-foreign import ccall safe "window_create_custom"
+foreign import ccall unsafe "window_create_custom"
     c_window_create_custom :: Ptr Display -> IO (Ptr Window)
 
-foreign import ccall safe "window_destroy"
+foreign import ccall unsafe "window_destroy"
     c_window_destroy :: Ptr Window -> IO ()
 
-foreign import ccall safe "window_get_user_data"
+foreign import ccall unsafe "window_get_user_data"
     c_window_get_user_data :: Ptr Window -> IO (Ptr ())
 
-foreign import ccall safe "window_get_wl_surface"
+foreign import ccall unsafe "window_get_wl_surface"
     c_window_get_wl_surface :: Ptr Window -> IO (Ptr WlSurface)
 
-foreign import ccall safe "window_set_user_data"
+foreign import ccall unsafe "window_set_user_data"
     c_window_set_user_data :: Ptr Window -> Ptr () -> IO ()
 
-foreign import ccall safe "widget_destroy"
+foreign import ccall unsafe "widget_destroy"
     c_widget_destroy :: Ptr Widget -> IO ()
 
-foreign import ccall safe "widget_schedule_resize"
+foreign import ccall unsafe "widget_schedule_resize"
     c_widget_schedule_resize :: Ptr Widget -> Int32 -> Int32 -> IO ()
 
-foreign import ccall safe "widget_set_allocation"
+foreign import ccall unsafe "widget_set_allocation"
     c_widget_set_allocation :: Ptr Widget -> CInt -> CInt -> CInt -> CInt -> IO ()
 
-foreign import ccall safe "widget_set_enter_handler"
+foreign import ccall unsafe "widget_set_enter_handler"
     c_widget_set_enter_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr Input -> Float -> Float -> Ptr () -> IO (CursorType)) -> IO ()
 
-foreign import ccall safe "widget_set_transparent"
+foreign import ccall unsafe "widget_set_transparent"
     c_widget_set_transparent :: Ptr Widget -> CInt -> IO ()
 
-foreign import ccall safe "wl_proxy_destroy"
+foreign import ccall unsafe "wl_proxy_destroy"
     c_wl_output_destroy :: Ptr WlOutput -> IO ()
 
-foreign import ccall safe "wl_proxy_add_listener"
+foreign import ccall unsafe "wl_proxy_add_listener"
     c_weston_desktop_shell_add_listener :: Ptr WestonDesktopShell -> Ptr Listener -> Ptr Desktop -> IO ()
 
-foreign import ccall safe "wl_proxy_destroy"
+foreign import ccall unsafe "wl_proxy_destroy"
     c_weston_desktop_shell_destroy :: Ptr WestonDesktopShell -> IO ()
 
-foreign import ccall safe "wl_proxy_get_user_data"
+foreign import ccall unsafe "wl_proxy_get_user_data"
     c_wl_surface_get_user_data :: Ptr WlSurface -> IO (Ptr ())
 
-foreign import ccall safe "wl_proxy_marshal"
+foreign import ccall unsafe "wl_proxy_marshal"
     c_wl_proxy_marshal :: Ptr WestonDesktopShell -> CInt -> Ptr () -> Ptr () -> IO ()
 
 c_weston_desktop_shell_desktop_ready :: Ptr WestonDesktopShell -> IO ()
@@ -250,31 +250,31 @@ c_weston_desktop_shell_set_grab_surface ds_ptr s_ptr =
     c_wl_proxy_marshal ds_ptr 4 (castPtr s_ptr :: Ptr ()) nullPtr
 {-# LINE 223 "Myth/Internal.hsc" #-}
 
-foreign import ccall "wrapper"
+foreign import ccall unsafe "wrapper"
     mkSurfaceConfigureForeign ::            (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
                                  IO (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()))
 
-foreign import ccall "wrapper"
+foreign import ccall unsafe "wrapper"
     mkDesktopShellConfigureForeign ::            (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ()) ->
                                       IO (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ()))
 
-foreign import ccall "wrapper"
+foreign import ccall unsafe "wrapper"
     mkDesktopShellPrepareLockSurfaceForeign ::            (Ptr () -> Ptr WestonDesktopShell -> IO ()) ->
                                                IO (FunPtr (Ptr () -> Ptr WestonDesktopShell -> IO ()))
 
-foreign import ccall "wrapper"
+foreign import ccall unsafe "wrapper"
     mkDesktopShellGrabCursorForeign ::            (Ptr () -> Ptr WestonDesktopShell -> CursorType -> IO ()) ->
                                        IO (FunPtr (Ptr () -> Ptr WestonDesktopShell -> CursorType -> IO ()))
 
-foreign import ccall "wrapper"
+foreign import ccall unsafe "wrapper"
     mkGrabSurfaceEnterHandlerForeign ::            (Ptr Widget -> Ptr Input -> Float -> Float -> Ptr () -> IO (CursorType)) ->
                                         IO (FunPtr (Ptr Widget -> Ptr Input -> Float -> Float -> Ptr () -> IO (CursorType)))
 
-foreign import ccall "wrapper"
+foreign import ccall unsafe "wrapper"
     mkGlobalHandlerForeign ::            (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()) ->
                               IO (FunPtr (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()))
 
-foreign import ccall "dynamic"
+foreign import ccall safe "dynamic"
     mkSurfaceConfigure :: FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
                                  (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ())
 

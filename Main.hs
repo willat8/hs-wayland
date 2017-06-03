@@ -111,6 +111,5 @@ main = do
         peek bg_ptr >>= c_window_destroy . backgroundWindow
         peek o_ptr >>= c_wl_output_destroy . outputWlOutput
         peek desktop_ptr >>= c_weston_desktop_shell_destroy . desktopShell
-        -- Figure out which foreign calls can be safe vs unsafe
     return 0
 

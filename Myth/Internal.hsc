@@ -9,6 +9,22 @@ import Foreign.C.Types
 #include "../C/window.h"
 #include "../C/weston-desktop-shell-client-protocol.h"
 
+#{def struct desktop {
+    struct display *display;
+    struct weston_desktop_shell *shell;
+    struct output *output;
+    struct window *grab_window;
+    struct widget *grab_widget;
+    enum cursor_type grab_cursor;
+  };
+}
+
+#{def struct output {
+    struct wl_output *output;
+    struct background *background;
+  };
+}
+
 #{def struct surface {
     void (*configure)(void *data,
                       struct weston_desktop_shell *desktop_shell,
@@ -26,30 +42,14 @@ import Foreign.C.Types
   };
 }
 
-#{def struct desktop {
-    struct display *display;
-    struct weston_desktop_shell *shell;
-    struct output *output;
-    struct window *grab_window;
-    struct widget *grab_widget;
-    enum cursor_type grab_cursor;
-  };
-}
-
-#{def struct output {
-    struct wl_output *output;
-    struct background *background;
-  };
-}
-
 newtype CursorType = CursorType { unCursorType :: CInt }
     deriving (Eq, Show)
 #enum CursorType, CursorType, CURSOR_LEFT_PTR
 
 data WlOutputInterface
-foreign import ccall "&wl_output_interface"
+foreign import ccall unsafe "&wl_output_interface"
     c_wl_output_interface :: Ptr WlOutputInterface
-foreign import ccall "&weston_desktop_shell_interface"
+foreign import ccall unsafe "&weston_desktop_shell_interface"
     c_weston_desktop_shell_interface :: Ptr WlOutputInterface
 
 data Display
@@ -59,16 +59,6 @@ data Widget
 data WlOutput
 data WlSurface
 data Input
-
-data Surface = Surface (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()))
-instance Storable Surface where
-    sizeOf _    = #{size struct surface}
-    alignment _ = #{alignment struct surface}
-    peek ptr = do
-        c_funp <- #{peek struct surface, configure} ptr
-        return (Surface c_funp)
-    poke ptr (Surface c_funp) = do
-        #{poke struct surface, configure} ptr c_funp
 
 data Desktop = Desktop { desktopDisplay    :: Ptr Display
                        , desktopShell      :: Ptr WestonDesktopShell
@@ -96,23 +86,6 @@ instance Storable Desktop where
         #{poke struct desktop, grab_widget} ptr widget_ptr
         #{poke struct desktop, grab_cursor} ptr (unCursorType c)
 
-data Background = Background { backgroundSurface :: Surface
-                             , backgroundWindow  :: Ptr Window
-                             , backgroundWidget  :: Ptr Widget
-                             }
-instance Storable Background where
-    sizeOf _    = #{size struct background}
-    alignment _ = #{alignment struct background}
-    peek ptr = do
-        base       <- #{peek struct background, base} ptr
-        window_ptr <- #{peek struct background, window} ptr
-        widget_ptr <- #{peek struct background, widget} ptr
-        return (Background base window_ptr widget_ptr)
-    poke ptr (Background base window_ptr widget_ptr) = do
-        #{poke struct background, base} ptr base
-        #{poke struct background, window} ptr window_ptr
-        #{poke struct background, widget} ptr widget_ptr
-
 data Output = Output { outputWlOutput   :: Ptr WlOutput
                      , outputBackground :: Ptr Background
                      }
@@ -126,6 +99,16 @@ instance Storable Output where
     poke ptr (Output o_ptr bg_ptr) = do
         #{poke struct output, output} ptr o_ptr
         #{poke struct output, background} ptr bg_ptr
+
+data Surface = Surface (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()))
+instance Storable Surface where
+    sizeOf _    = #{size struct surface}
+    alignment _ = #{alignment struct surface}
+    peek ptr = do
+        c_funp <- #{peek struct surface, configure} ptr
+        return (Surface c_funp)
+    poke ptr (Surface c_funp) = do
+        #{poke struct surface, configure} ptr c_funp
 
 data Listener = Listener (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ()))
                          (FunPtr (Ptr () -> Ptr WestonDesktopShell -> IO ()))
@@ -143,10 +126,27 @@ instance Storable Listener where
         #{poke struct weston_desktop_shell_listener, prepare_lock_surface} ptr pls_funp
         #{poke struct weston_desktop_shell_listener, grab_cursor} ptr gc_funp
 
-foreign import ccall safe "display_bind"
+data Background = Background { backgroundSurface :: Surface
+                             , backgroundWindow  :: Ptr Window
+                             , backgroundWidget  :: Ptr Widget
+                             }
+instance Storable Background where
+    sizeOf _    = #{size struct background}
+    alignment _ = #{alignment struct background}
+    peek ptr = do
+        base       <- #{peek struct background, base} ptr
+        window_ptr <- #{peek struct background, window} ptr
+        widget_ptr <- #{peek struct background, widget} ptr
+        return (Background base window_ptr widget_ptr)
+    poke ptr (Background base window_ptr widget_ptr) = do
+        #{poke struct background, base} ptr base
+        #{poke struct background, window} ptr window_ptr
+        #{poke struct background, widget} ptr widget_ptr
+
+foreign import ccall unsafe "display_bind"
     c_display_bind :: Ptr Display -> Word32 -> Ptr WlOutputInterface -> CInt -> IO (Ptr WlOutput)
 
-foreign import ccall safe "display_create"
+foreign import ccall unsafe "display_create"
     c_display_create :: CInt -> Ptr CString -> IO (Ptr Display)
 
 foreign import ccall unsafe "&display_destroy"
@@ -158,55 +158,55 @@ foreign import ccall safe "display_run"
 foreign import ccall safe "display_set_global_handler"
     c_display_set_global_handler :: Ptr Display -> FunPtr (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()) -> IO ()
 
-foreign import ccall safe "display_set_user_data"
+foreign import ccall unsafe "display_set_user_data"
     c_display_set_user_data :: Ptr Display -> Ptr () -> IO ()
 
-foreign import ccall safe "window_add_widget"
+foreign import ccall unsafe "window_add_widget"
     c_window_add_widget :: Ptr Window -> Ptr () -> IO (Ptr Widget)
 
-foreign import ccall safe "window_create_custom"
+foreign import ccall unsafe "window_create_custom"
     c_window_create_custom :: Ptr Display -> IO (Ptr Window)
 
-foreign import ccall safe "window_destroy"
+foreign import ccall unsafe "window_destroy"
     c_window_destroy :: Ptr Window -> IO ()
 
-foreign import ccall safe "window_get_user_data"
+foreign import ccall unsafe "window_get_user_data"
     c_window_get_user_data :: Ptr Window -> IO (Ptr ())
 
-foreign import ccall safe "window_get_wl_surface"
+foreign import ccall unsafe "window_get_wl_surface"
     c_window_get_wl_surface :: Ptr Window -> IO (Ptr WlSurface)
 
-foreign import ccall safe "window_set_user_data"
+foreign import ccall unsafe "window_set_user_data"
     c_window_set_user_data :: Ptr Window -> Ptr () -> IO ()
 
-foreign import ccall safe "widget_destroy"
+foreign import ccall unsafe "widget_destroy"
     c_widget_destroy :: Ptr Widget -> IO ()
 
-foreign import ccall safe "widget_schedule_resize"
+foreign import ccall unsafe "widget_schedule_resize"
     c_widget_schedule_resize :: Ptr Widget -> Int32 -> Int32 -> IO ()
 
-foreign import ccall safe "widget_set_allocation"
+foreign import ccall unsafe "widget_set_allocation"
     c_widget_set_allocation :: Ptr Widget -> CInt -> CInt -> CInt -> CInt -> IO ()
 
-foreign import ccall safe "widget_set_enter_handler"
+foreign import ccall unsafe "widget_set_enter_handler"
     c_widget_set_enter_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr Input -> Float -> Float -> Ptr () -> IO (CursorType)) -> IO ()
 
-foreign import ccall safe "widget_set_transparent"
+foreign import ccall unsafe "widget_set_transparent"
     c_widget_set_transparent :: Ptr Widget -> CInt -> IO ()
 
-foreign import ccall safe "wl_proxy_destroy"
+foreign import ccall unsafe "wl_proxy_destroy"
     c_wl_output_destroy :: Ptr WlOutput -> IO ()
 
-foreign import ccall safe "wl_proxy_add_listener"
+foreign import ccall unsafe "wl_proxy_add_listener"
     c_weston_desktop_shell_add_listener :: Ptr WestonDesktopShell -> Ptr Listener -> Ptr Desktop -> IO ()
 
-foreign import ccall safe "wl_proxy_destroy"
+foreign import ccall unsafe "wl_proxy_destroy"
     c_weston_desktop_shell_destroy :: Ptr WestonDesktopShell -> IO ()
 
-foreign import ccall safe "wl_proxy_get_user_data"
+foreign import ccall unsafe "wl_proxy_get_user_data"
     c_wl_surface_get_user_data :: Ptr WlSurface -> IO (Ptr ())
 
-foreign import ccall safe "wl_proxy_marshal"
+foreign import ccall unsafe "wl_proxy_marshal"
     c_wl_proxy_marshal :: Ptr WestonDesktopShell -> CInt -> Ptr () -> Ptr () -> IO ()
 
 c_weston_desktop_shell_desktop_ready :: Ptr WestonDesktopShell -> IO ()
@@ -221,31 +221,31 @@ c_weston_desktop_shell_set_grab_surface :: Ptr WestonDesktopShell -> Ptr WlSurfa
 c_weston_desktop_shell_set_grab_surface ds_ptr s_ptr =
     c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_GRAB_SURFACE} (castPtr s_ptr :: Ptr ()) nullPtr
 
-foreign import ccall "wrapper"
+foreign import ccall unsafe "wrapper"
     mkSurfaceConfigureForeign ::            (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
                                  IO (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()))
 
-foreign import ccall "wrapper"
+foreign import ccall unsafe "wrapper"
     mkDesktopShellConfigureForeign ::            (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ()) ->
                                       IO (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ()))
 
-foreign import ccall "wrapper"
+foreign import ccall unsafe "wrapper"
     mkDesktopShellPrepareLockSurfaceForeign ::            (Ptr () -> Ptr WestonDesktopShell -> IO ()) ->
                                                IO (FunPtr (Ptr () -> Ptr WestonDesktopShell -> IO ()))
 
-foreign import ccall "wrapper"
+foreign import ccall unsafe "wrapper"
     mkDesktopShellGrabCursorForeign ::            (Ptr () -> Ptr WestonDesktopShell -> CursorType -> IO ()) ->
                                        IO (FunPtr (Ptr () -> Ptr WestonDesktopShell -> CursorType -> IO ()))
 
-foreign import ccall "wrapper"
+foreign import ccall unsafe "wrapper"
     mkGrabSurfaceEnterHandlerForeign ::            (Ptr Widget -> Ptr Input -> Float -> Float -> Ptr () -> IO (CursorType)) ->
                                         IO (FunPtr (Ptr Widget -> Ptr Input -> Float -> Float -> Ptr () -> IO (CursorType)))
 
-foreign import ccall "wrapper"
+foreign import ccall unsafe "wrapper"
     mkGlobalHandlerForeign ::            (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()) ->
                               IO (FunPtr (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()))
 
-foreign import ccall "dynamic"
+foreign import ccall safe "dynamic"
     mkSurfaceConfigure :: FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
                                  (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ())
 
