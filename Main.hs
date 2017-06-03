@@ -39,7 +39,7 @@ grabSurfaceEnterHandler widget_ptr input_ptr x y d_ptr = do
     peek desktop_ptr >>= return . desktopCursorType
 
 grabSurfaceCreate desktop_ptr = do
-    Desktop display_ptr ds_ptr _ _ _ gc <- peek desktop_ptr
+    Desktop display_ptr ds_ptr _ _ _ _ <- peek desktop_ptr
     window_ptr <- c_window_create_custom display_ptr
     c_window_set_user_data window_ptr (castPtr desktop_ptr :: Ptr ())
     s <- c_window_get_wl_surface window_ptr
