@@ -4,6 +4,26 @@ import Foreign
 import Foreign.Ptr
 import Foreign.C.String
 import Foreign.C.Types
+import qualified Graphics.Rendering.Cairo.Types as XP
+
+redrawHandler widget_ptr d_ptr = do
+    let status_ptr = castPtr d_ptr :: Ptr Status
+    xpsurface <- peek status_ptr >>= c_window_get_surface . statusWindow >>= XP.mkSurface
+    XP.manageSurface xpsurface
+
+statusConfigure status_ptr = do
+    Status _ window_ptr widget_ptr <- peek status_ptr
+    rh_funp <- mkRedrawHandlerForeign redrawHandler
+    c_widget_set_redraw_handler widget_ptr rh_funp
+    c_window_schedule_resize window_ptr 800 480
+    return rh_funp
+
+statusCreate display_ptr = do
+    mallocForeignPtr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
+        window_ptr <- c_window_create display_ptr
+        widget_ptr <- c_window_add_widget window_ptr (castPtr status_ptr :: Ptr ())
+        poke status_ptr (Status display_ptr window_ptr widget_ptr)
+        return status_fp
 
 backgroundConfigure d_ptr ds_ptr edges window_ptr w h = do
     bg_ptr <- c_window_get_user_data window_ptr >>= return . castPtr :: IO (Ptr Background)
@@ -91,6 +111,7 @@ displayCreate = alloca $ \argv -> c_display_create 0 argv >>= newForeignPtr c_di
 main = do
     mallocForeignPtr >>= \desktop_fp -> withForeignPtr desktop_fp $ \desktop_ptr -> do
     displayCreate >>= \display_fp -> withForeignPtr display_fp $ \display_ptr -> do
+    statusCreate display_ptr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
         peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopDisplay = display_ptr }
         gh_funp <- mkGlobalHandlerForeign globalHandler
         c_display_set_user_data display_ptr (castPtr desktop_ptr :: Ptr ())
@@ -101,8 +122,10 @@ main = do
             then outputInit o_ptr desktop_ptr
             else return ()
         gseh_funp <- grabSurfaceCreate desktop_ptr
+        rh_funp <- statusConfigure status_ptr
         c_display_run display_ptr
         -- Clean up
+        freeHaskellFunPtr rh_funp
         freeHaskellFunPtr gseh_funp
         freeHaskellFunPtr gh_funp
         peek desktop_ptr >>= c_widget_destroy . desktopWidget

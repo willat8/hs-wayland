@@ -5,6 +5,7 @@ import Foreign
 import Foreign.Ptr
 import Foreign.C.String
 import Foreign.C.Types
+import qualified Graphics.Rendering.Cairo.Types as XP
 
 #include "../C/window.h"
 #include "../C/weston-desktop-shell-client-protocol.h"
@@ -16,12 +17,6 @@ import Foreign.C.Types
     struct window *grab_window;
     struct widget *grab_widget;
     enum cursor_type grab_cursor;
-  };
-}
-
-#{def struct output {
-    struct wl_output *output;
-    struct background *background;
   };
 }
 
@@ -37,6 +32,19 @@ import Foreign.C.Types
 
 #{def struct background {
     struct surface base;
+    struct window *window;
+    struct widget *widget;
+  };
+}
+
+#{def struct output {
+    struct wl_output *output;
+    struct background *background;
+  };
+}
+
+#{def struct status {
+    struct display *display;
     struct window *window;
     struct widget *widget;
   };
@@ -86,20 +94,6 @@ instance Storable Desktop where
         #{poke struct desktop, grab_widget} ptr widget_ptr
         #{poke struct desktop, grab_cursor} ptr (unCursorType c)
 
-data Output = Output { outputWlOutput   :: Ptr WlOutput
-                     , outputBackground :: Ptr Background
-                     }
-instance Storable Output where
-    sizeOf _    = #{size struct output}
-    alignment _ = #{alignment struct output}
-    peek ptr = do
-        o_ptr  <- #{peek struct output, output} ptr
-        bg_ptr <- #{peek struct output, background} ptr
-        return (Output o_ptr bg_ptr)
-    poke ptr (Output o_ptr bg_ptr) = do
-        #{poke struct output, output} ptr o_ptr
-        #{poke struct output, background} ptr bg_ptr
-
 data Surface = Surface (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()))
 instance Storable Surface where
     sizeOf _    = #{size struct surface}
@@ -143,6 +137,37 @@ instance Storable Background where
         #{poke struct background, window} ptr window_ptr
         #{poke struct background, widget} ptr widget_ptr
 
+data Output = Output { outputWlOutput   :: Ptr WlOutput
+                     , outputBackground :: Ptr Background
+                     }
+instance Storable Output where
+    sizeOf _    = #{size struct output}
+    alignment _ = #{alignment struct output}
+    peek ptr = do
+        o_ptr  <- #{peek struct output, output} ptr
+        bg_ptr <- #{peek struct output, background} ptr
+        return (Output o_ptr bg_ptr)
+    poke ptr (Output o_ptr bg_ptr) = do
+        #{poke struct output, output} ptr o_ptr
+        #{poke struct output, background} ptr bg_ptr
+
+data Status = Status { statusDisplay :: Ptr Display
+                     , statusWindow  :: Ptr Window
+                     , statusWidget  :: Ptr Widget
+                     }
+instance Storable Status where
+    sizeOf _    = #{size struct status}
+    alignment _ = #{alignment struct status}
+    peek ptr = do
+        display_ptr <- #{peek struct status, display} ptr
+        window_ptr <- #{peek struct status, window} ptr
+        widget_ptr <- #{peek struct status, widget} ptr
+        return (Status display_ptr window_ptr widget_ptr)
+    poke ptr (Status display_ptr window_ptr widget_ptr) = do
+        #{poke struct status, display} ptr display_ptr
+        #{poke struct status, window} ptr window_ptr
+        #{poke struct status, widget} ptr widget_ptr
+
 foreign import ccall unsafe "display_bind"
     c_display_bind :: Ptr Display -> Word32 -> Ptr WlOutputInterface -> CInt -> IO (Ptr WlOutput)
 
@@ -164,17 +189,26 @@ foreign import ccall unsafe "display_set_user_data"
 foreign import ccall unsafe "window_add_widget"
     c_window_add_widget :: Ptr Window -> Ptr () -> IO (Ptr Widget)
 
+foreign import ccall unsafe "window_create"
+    c_window_create :: Ptr Display -> IO (Ptr Window)
+
 foreign import ccall unsafe "window_create_custom"
     c_window_create_custom :: Ptr Display -> IO (Ptr Window)
 
 foreign import ccall unsafe "window_destroy"
     c_window_destroy :: Ptr Window -> IO ()
 
+foreign import ccall unsafe "window_get_surface"
+    c_window_get_surface :: Ptr Window -> IO (Ptr XP.Surface)
+
 foreign import ccall unsafe "window_get_user_data"
     c_window_get_user_data :: Ptr Window -> IO (Ptr ())
 
 foreign import ccall unsafe "window_get_wl_surface"
     c_window_get_wl_surface :: Ptr Window -> IO (Ptr WlSurface)
+
+foreign import ccall unsafe "window_schedule_resize"
+    c_window_schedule_resize :: Ptr Window -> Int32 -> Int32 -> IO ()
 
 foreign import ccall unsafe "window_set_user_data"
     c_window_set_user_data :: Ptr Window -> Ptr () -> IO ()
@@ -190,6 +224,9 @@ foreign import ccall unsafe "widget_set_allocation"
 
 foreign import ccall unsafe "widget_set_enter_handler"
     c_widget_set_enter_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr Input -> Float -> Float -> Ptr () -> IO (CursorType)) -> IO ()
+
+foreign import ccall unsafe "widget_set_redraw_handler"
+    c_widget_set_redraw_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr () -> IO ()) -> IO ()
 
 foreign import ccall unsafe "widget_set_transparent"
     c_widget_set_transparent :: Ptr Widget -> CInt -> IO ()
@@ -220,6 +257,10 @@ c_weston_desktop_shell_set_background ds_ptr wlo_ptr s_ptr =
 c_weston_desktop_shell_set_grab_surface :: Ptr WestonDesktopShell -> Ptr WlSurface -> IO ()
 c_weston_desktop_shell_set_grab_surface ds_ptr s_ptr =
     c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_GRAB_SURFACE} (castPtr s_ptr :: Ptr ()) nullPtr
+
+foreign import ccall unsafe "wrapper"
+    mkRedrawHandlerForeign ::            (Ptr Widget -> Ptr () -> IO ()) ->
+                              IO (FunPtr (Ptr Widget -> Ptr () -> IO ()))
 
 foreign import ccall unsafe "wrapper"
     mkSurfaceConfigureForeign ::            (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
