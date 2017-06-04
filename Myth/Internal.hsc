@@ -6,9 +6,13 @@ import Foreign.Ptr
 import Foreign.C.String
 import Foreign.C.Types
 import qualified Graphics.Rendering.Cairo.Types as XP
+import System.Posix.Types
+import System.Posix.IO
 
 #include "../C/window.h"
 #include "../C/weston-desktop-shell-client-protocol.h"
+#include <sys/timerfd.h>
+#include <sys/epoll.h>
 
 #{def struct desktop {
     struct display *display;
@@ -48,6 +52,8 @@ import qualified Graphics.Rendering.Cairo.Types as XP
     struct window *window;
     struct widget *widget;
     int width, height;
+    int check_fd;
+    struct task check_task;
   };
 }
 
@@ -55,11 +61,24 @@ newtype CursorType = CursorType { unCursorType :: CInt }
     deriving (Eq, Show)
 #enum CursorType, CursorType, CURSOR_LEFT_PTR
 
+newtype TimerFdOption = TimerFdOption { unTimerFdOption :: CInt }
+    deriving (Eq, Show)
+#enum TimerFdOption, TimerFdOption, CLOCK_MONOTONIC, TFD_CLOEXEC
+
+newtype EpollOperation = EpollOperation { unEpollOperation :: CInt }
+    deriving (Eq, Show)
+#enum EpollOperation, EpollOperation, EPOLLIN
+
 data WlOutputInterface
 foreign import ccall unsafe "&wl_output_interface"
     c_wl_output_interface :: Ptr WlOutputInterface
 foreign import ccall unsafe "&weston_desktop_shell_interface"
     c_weston_desktop_shell_interface :: Ptr WlOutputInterface
+
+statusCheckTaskContainer task_ptr = plusPtr task_ptr (-1 * #offset struct status, check_task) :: Ptr Status
+statusCheckTaskPtr status_ptr = plusPtr status_ptr (#offset struct status, check_task) :: Ptr Task
+
+readStatusCheckFd fd = fdRead fd #{size uint64_t}
 
 data Display
 data WestonDesktopShell
@@ -152,11 +171,23 @@ instance Storable Output where
         #{poke struct output, output} ptr o_ptr
         #{poke struct output, background} ptr bg_ptr
 
-data Status = Status { statusDisplay :: Ptr Display
-                     , statusWindow  :: Ptr Window
-                     , statusWidget  :: Ptr Widget
-                     , statusWidth   :: Int32
-                     , statusHeight  :: Int32
+data Task = Task (FunPtr (Ptr Task -> Word32 -> IO ()))
+instance Storable Task where
+    sizeOf _    = #{size struct task}
+    alignment _ = #{alignment struct task}
+    peek ptr = do
+        run_funp <- #{peek struct task, run} ptr
+        return (Task run_funp)
+    poke ptr (Task run_funp) = do
+        #{poke struct task, run} ptr run_funp
+
+data Status = Status { statusDisplay   :: Ptr Display
+                     , statusWindow    :: Ptr Window
+                     , statusWidget    :: Ptr Widget
+                     , statusWidth     :: Int32
+                     , statusHeight    :: Int32
+                     , statusCheckFd   :: Fd
+                     , statusCheckTask :: Task
                      }
 instance Storable Status where
     sizeOf _    = #{size struct status}
@@ -167,13 +198,17 @@ instance Storable Status where
         widget_ptr <- #{peek struct status, widget} ptr
         width <- #{peek struct status, width} ptr
         height <- #{peek struct status, height} ptr
-        return (Status display_ptr window_ptr widget_ptr width height)
-    poke ptr (Status display_ptr window_ptr widget_ptr width height) = do
+        check_fd <- #{peek struct status, check_fd} ptr
+        check_task <- #{peek struct status, check_task} ptr
+        return (Status display_ptr window_ptr widget_ptr width height check_fd check_task)
+    poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task) = do
         #{poke struct status, display} ptr display_ptr
         #{poke struct status, window} ptr window_ptr
         #{poke struct status, widget} ptr widget_ptr
         #{poke struct status, width} ptr width
         #{poke struct status, height} ptr height
+        #{poke struct status, check_fd} ptr check_fd
+        #{poke struct status, check_task} ptr check_task
 
 foreign import ccall unsafe "display_bind"
     c_display_bind :: Ptr Display -> Word32 -> Ptr WlOutputInterface -> CInt -> IO (Ptr WlOutput)
@@ -192,6 +227,12 @@ foreign import ccall safe "display_set_global_handler"
 
 foreign import ccall unsafe "display_set_user_data"
     c_display_set_user_data :: Ptr Display -> Ptr () -> IO ()
+
+foreign import ccall unsafe "display_watch_fd"
+    c_display_watch_fd :: Ptr Display -> Fd -> EpollOperation -> Ptr Task -> IO ()
+
+foreign import ccall unsafe "timerfd_create"
+    c_timerfd_create :: TimerFdOption -> TimerFdOption -> IO (Fd)
 
 foreign import ccall unsafe "window_add_widget"
     c_window_add_widget :: Ptr Window -> Ptr () -> IO (Ptr Widget)
@@ -222,6 +263,9 @@ foreign import ccall unsafe "window_set_user_data"
 
 foreign import ccall unsafe "widget_destroy"
     c_widget_destroy :: Ptr Widget -> IO ()
+
+foreign import ccall unsafe "widget_schedule_redraw"
+    c_widget_schedule_redraw :: Ptr Widget -> IO ()
 
 foreign import ccall unsafe "widget_schedule_resize"
     c_widget_schedule_resize :: Ptr Widget -> Int32 -> Int32 -> IO ()
@@ -264,6 +308,10 @@ c_weston_desktop_shell_set_background ds_ptr wlo_ptr s_ptr =
 c_weston_desktop_shell_set_grab_surface :: Ptr WestonDesktopShell -> Ptr WlSurface -> IO ()
 c_weston_desktop_shell_set_grab_surface ds_ptr s_ptr =
     c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_GRAB_SURFACE} (castPtr s_ptr :: Ptr ()) nullPtr
+
+foreign import ccall unsafe "wrapper"
+    mkStatusCheckForeign ::            (Ptr Task -> Word32 -> IO ()) ->
+                            IO (FunPtr (Ptr Task -> Word32 -> IO ()))
 
 foreign import ccall unsafe "wrapper"
     mkRedrawHandlerForeign ::            (Ptr Widget -> Ptr () -> IO ()) ->

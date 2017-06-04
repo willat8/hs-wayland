@@ -6,6 +6,7 @@ import Foreign.C.String
 import Foreign.C.Types
 import qualified Graphics.Rendering.Cairo as XP
 import qualified Graphics.Rendering.Cairo.Types as XP
+import System.Posix.Types
 
 drawSquare w x y = do
     let h = w
@@ -37,14 +38,21 @@ drawStatus xpsurface w h = XP.renderWith xpsurface $ do
     drawSquare sq_dim ((w - sq_dim) / 2) y
     drawSquare sq_dim (w - init_x - sq_dim) y
 
+statusCheck t_ptr events = do
+    let status_ptr = statusCheckTaskContainer t_ptr
+    Status _ _ widget_ptr _ _ check_fd _ <- peek status_ptr
+    readStatusCheckFd check_fd
+    c_widget_schedule_redraw widget_ptr
+
 redrawHandler widget_ptr d_ptr = do
-    Status _ window_ptr _ w h <- peek $ castPtr d_ptr
+    Status _ window_ptr _ w h _ _ <- peek $ castPtr d_ptr
     xpsurface <- c_window_get_surface window_ptr >>= XP.mkSurface
     XP.manageSurface xpsurface
     drawStatus xpsurface (fromIntegral w) (fromIntegral h)
 
 statusConfigure status_ptr = do
-    Status _ window_ptr widget_ptr w h <- peek status_ptr
+    Status display_ptr window_ptr widget_ptr w h check_fd _ <- peek status_ptr
+    c_display_watch_fd display_ptr check_fd epollin (statusCheckTaskPtr status_ptr)
     rh_funp <- mkRedrawHandlerForeign redrawHandler
     c_widget_set_redraw_handler widget_ptr rh_funp
     c_window_schedule_resize window_ptr w h
@@ -54,7 +62,9 @@ statusCreate display_ptr w h = do
     mallocForeignPtr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
         window_ptr <- c_window_create display_ptr
         widget_ptr <- c_window_add_widget window_ptr $ castPtr status_ptr
-        poke status_ptr (Status display_ptr window_ptr widget_ptr w h)
+        check_fd <- c_timerfd_create clockMonotonic tfdCloexec
+        check_task <- mkStatusCheckForeign statusCheck >>= return . Task
+        poke status_ptr (Status display_ptr window_ptr widget_ptr w h check_fd check_task)
         return status_fp
 
 backgroundConfigure d_ptr ds_ptr edges window_ptr w h = do
@@ -73,7 +83,7 @@ desktopShellPrepareLockSurface d_ptr ds_ptr = return ()
 
 desktopShellGrabCursor d_ptr ds_ptr c = do
     let desktop_ptr = castPtr d_ptr
-    peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopCursorType = c }
+    peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopCursorType = cursorLeftPtr }
 
 backgroundCreate desktop_ptr = do
     mallocForeignPtr >>= \bg_fp -> withForeignPtr bg_fp $ \bg_ptr -> do
@@ -160,6 +170,7 @@ main = do
         freeHaskellFunPtr rh_funp
         freeHaskellFunPtr gseh_funp
         freeHaskellFunPtr gh_funp
+        peek status_ptr >>= (\(Task status_check_funp) -> freeHaskellFunPtr status_check_funp) . statusCheckTask
         peek status_ptr >>= c_widget_destroy . statusWidget
         peek status_ptr >>= c_window_destroy . statusWindow
         peek desktop_ptr >>= c_widget_destroy . desktopWidget
