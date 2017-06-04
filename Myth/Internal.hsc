@@ -171,6 +171,34 @@ instance Storable Output where
         #{poke struct output, output} ptr o_ptr
         #{poke struct output, background} ptr bg_ptr
 
+data TimeSpec = TimeSpec { timeSpecTvSec  :: CLong
+                         , timeSpecTvNsec :: CLong
+                         }
+instance Storable TimeSpec where
+    sizeOf _    = #{size struct timespec}
+    alignment _ = #{alignment struct timespec}
+    peek ptr = do
+        tv_sec <- #{peek struct timespec, tv_sec} ptr
+        tv_nsec <- #{peek struct timespec, tv_nsec} ptr
+        return (TimeSpec tv_sec tv_nsec)
+    poke ptr (TimeSpec tv_sec tv_nsec) = do
+        #{poke struct timespec, tv_sec} ptr tv_sec
+        #{poke struct timespec, tv_nsec} ptr tv_nsec
+
+data ITimerSpec = ITimerSpec { iTimerInterval :: TimeSpec
+                             , iTimerValue    :: TimeSpec
+                             }
+instance Storable ITimerSpec where
+    sizeOf _    = #{size struct itimerspec}
+    alignment _ = #{alignment struct itimerspec}
+    peek ptr = do
+        it_interval <- #{peek struct itimerspec, it_interval} ptr
+        it_value <- #{peek struct itimerspec, it_value} ptr
+        return (ITimerSpec it_interval it_value)
+    poke ptr (ITimerSpec it_interval it_value) = do
+        #{poke struct itimerspec, it_interval} ptr it_interval
+        #{poke struct itimerspec, it_value} ptr it_value
+
 data Task = Task (FunPtr (Ptr Task -> Word32 -> IO ()))
 instance Storable Task where
     sizeOf _    = #{size struct task}
@@ -233,6 +261,9 @@ foreign import ccall unsafe "display_watch_fd"
 
 foreign import ccall unsafe "timerfd_create"
     c_timerfd_create :: TimerFdOption -> TimerFdOption -> IO (Fd)
+
+foreign import ccall unsafe "timerfd_settime"
+    c_timerfd_settime :: Fd -> CInt -> Ptr ITimerSpec -> Ptr ITimerSpec -> IO ()
 
 foreign import ccall unsafe "window_add_widget"
     c_window_add_widget :: Ptr Window -> Ptr () -> IO (Ptr Widget)

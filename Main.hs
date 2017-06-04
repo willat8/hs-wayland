@@ -7,8 +7,9 @@ import Foreign.C.Types
 import qualified Graphics.Rendering.Cairo as XP
 import qualified Graphics.Rendering.Cairo.Types as XP
 import System.Posix.Types
+import System.Random
 
-drawSquare w x y = do
+drawSquare w x y c1 c2 c3 = do
     let h = w
         aspect = 1
         corner_radius = h / 10
@@ -22,21 +23,25 @@ drawSquare w x y = do
     XP.closePath
     XP.setSourceRGB (148 / 256) (194 / 256) (105 / 256)
     XP.fillPreserve
-    XP.setSourceRGBA (148 / 256) (194 / 256) (105 / 256) 0.5
+    XP.setSourceRGBA (c1 / 256) (c2 / 256) (c3 / 256) 0.5
     XP.setLineWidth 10
     XP.stroke
 
-drawStatus xpsurface w h = XP.renderWith xpsurface $ do
-    XP.setOperator XP.OperatorSource
-    XP.setSourceRGBA 0 0 0 0
-    XP.paint
-    XP.setOperator XP.OperatorOver
-    let sq_dim = 100
-    let init_x = 160
-    let y = (h - sq_dim) / 2
-    drawSquare sq_dim init_x y
-    drawSquare sq_dim ((w - sq_dim) / 2) y
-    drawSquare sq_dim (w - init_x - sq_dim) y
+drawStatus xpsurface w h = do
+    c1 <- getStdRandom (randomR (0, 256))
+    c2 <- getStdRandom (randomR (0, 256))
+    c3 <- getStdRandom (randomR (0, 256))
+    XP.renderWith xpsurface $ do
+        XP.setOperator XP.OperatorSource
+        XP.setSourceRGBA 0 0 0 0
+        XP.paint
+        XP.setOperator XP.OperatorOver
+        let sq_dim = 100
+        let init_x = 160
+        let y = (h - sq_dim) / 2
+        drawSquare sq_dim init_x y c1 c2 c3
+        drawSquare sq_dim ((w - sq_dim) / 2) y c1 c2 c3
+        drawSquare sq_dim (w - init_x - sq_dim) y c1 c2 c3
 
 statusCheck t_ptr events = do
     let status_ptr = statusCheckTaskContainer t_ptr
@@ -53,6 +58,7 @@ redrawHandler widget_ptr d_ptr = do
 statusConfigure status_ptr = do
     Status display_ptr window_ptr widget_ptr w h check_fd _ <- peek status_ptr
     c_display_watch_fd display_ptr check_fd epollin (statusCheckTaskPtr status_ptr)
+    with (ITimerSpec (TimeSpec 5 0) (TimeSpec 5 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
     rh_funp <- mkRedrawHandlerForeign redrawHandler
     c_widget_set_redraw_handler widget_ptr rh_funp
     c_window_schedule_resize window_ptr w h

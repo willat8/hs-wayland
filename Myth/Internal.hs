@@ -203,19 +203,59 @@ instance Storable Output where
         (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr bg_ptr
 {-# LINE 173 "Myth/Internal.hsc" #-}
 
+data TimeSpec = TimeSpec { timeSpecTvSec  :: CLong
+                         , timeSpecTvNsec :: CLong
+                         }
+instance Storable TimeSpec where
+    sizeOf _    = (16)
+{-# LINE 179 "Myth/Internal.hsc" #-}
+    alignment _ = (8)
+{-# LINE 180 "Myth/Internal.hsc" #-}
+    peek ptr = do
+        tv_sec <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
+{-# LINE 182 "Myth/Internal.hsc" #-}
+        tv_nsec <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
+{-# LINE 183 "Myth/Internal.hsc" #-}
+        return (TimeSpec tv_sec tv_nsec)
+    poke ptr (TimeSpec tv_sec tv_nsec) = do
+        (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr tv_sec
+{-# LINE 186 "Myth/Internal.hsc" #-}
+        (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr tv_nsec
+{-# LINE 187 "Myth/Internal.hsc" #-}
+
+data ITimerSpec = ITimerSpec { iTimerInterval :: TimeSpec
+                             , iTimerValue    :: TimeSpec
+                             }
+instance Storable ITimerSpec where
+    sizeOf _    = (32)
+{-# LINE 193 "Myth/Internal.hsc" #-}
+    alignment _ = (8)
+{-# LINE 194 "Myth/Internal.hsc" #-}
+    peek ptr = do
+        it_interval <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
+{-# LINE 196 "Myth/Internal.hsc" #-}
+        it_value <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
+{-# LINE 197 "Myth/Internal.hsc" #-}
+        return (ITimerSpec it_interval it_value)
+    poke ptr (ITimerSpec it_interval it_value) = do
+        (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr it_interval
+{-# LINE 200 "Myth/Internal.hsc" #-}
+        (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr it_value
+{-# LINE 201 "Myth/Internal.hsc" #-}
+
 data Task = Task (FunPtr (Ptr Task -> Word32 -> IO ()))
 instance Storable Task where
     sizeOf _    = (24)
-{-# LINE 177 "Myth/Internal.hsc" #-}
+{-# LINE 205 "Myth/Internal.hsc" #-}
     alignment _ = (8)
-{-# LINE 178 "Myth/Internal.hsc" #-}
+{-# LINE 206 "Myth/Internal.hsc" #-}
     peek ptr = do
         run_funp <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
-{-# LINE 180 "Myth/Internal.hsc" #-}
+{-# LINE 208 "Myth/Internal.hsc" #-}
         return (Task run_funp)
     poke ptr (Task run_funp) = do
         (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr run_funp
-{-# LINE 183 "Myth/Internal.hsc" #-}
+{-# LINE 211 "Myth/Internal.hsc" #-}
 
 data Status = Status { statusDisplay   :: Ptr Display
                      , statusWindow    :: Ptr Window
@@ -227,40 +267,40 @@ data Status = Status { statusDisplay   :: Ptr Display
                      }
 instance Storable Status where
     sizeOf _    = (64)
-{-# LINE 194 "Myth/Internal.hsc" #-}
+{-# LINE 222 "Myth/Internal.hsc" #-}
     alignment _ = (8)
-{-# LINE 195 "Myth/Internal.hsc" #-}
+{-# LINE 223 "Myth/Internal.hsc" #-}
     peek ptr = do
         display_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 0) ptr
-{-# LINE 197 "Myth/Internal.hsc" #-}
+{-# LINE 225 "Myth/Internal.hsc" #-}
         window_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 8) ptr
-{-# LINE 198 "Myth/Internal.hsc" #-}
+{-# LINE 226 "Myth/Internal.hsc" #-}
         widget_ptr <- (\hsc_ptr -> peekByteOff hsc_ptr 16) ptr
-{-# LINE 199 "Myth/Internal.hsc" #-}
+{-# LINE 227 "Myth/Internal.hsc" #-}
         width <- (\hsc_ptr -> peekByteOff hsc_ptr 24) ptr
-{-# LINE 200 "Myth/Internal.hsc" #-}
+{-# LINE 228 "Myth/Internal.hsc" #-}
         height <- (\hsc_ptr -> peekByteOff hsc_ptr 28) ptr
-{-# LINE 201 "Myth/Internal.hsc" #-}
+{-# LINE 229 "Myth/Internal.hsc" #-}
         check_fd <- (\hsc_ptr -> peekByteOff hsc_ptr 32) ptr
-{-# LINE 202 "Myth/Internal.hsc" #-}
+{-# LINE 230 "Myth/Internal.hsc" #-}
         check_task <- (\hsc_ptr -> peekByteOff hsc_ptr 40) ptr
-{-# LINE 203 "Myth/Internal.hsc" #-}
+{-# LINE 231 "Myth/Internal.hsc" #-}
         return (Status display_ptr window_ptr widget_ptr width height check_fd check_task)
     poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task) = do
         (\hsc_ptr -> pokeByteOff hsc_ptr 0) ptr display_ptr
-{-# LINE 206 "Myth/Internal.hsc" #-}
+{-# LINE 234 "Myth/Internal.hsc" #-}
         (\hsc_ptr -> pokeByteOff hsc_ptr 8) ptr window_ptr
-{-# LINE 207 "Myth/Internal.hsc" #-}
+{-# LINE 235 "Myth/Internal.hsc" #-}
         (\hsc_ptr -> pokeByteOff hsc_ptr 16) ptr widget_ptr
-{-# LINE 208 "Myth/Internal.hsc" #-}
+{-# LINE 236 "Myth/Internal.hsc" #-}
         (\hsc_ptr -> pokeByteOff hsc_ptr 24) ptr width
-{-# LINE 209 "Myth/Internal.hsc" #-}
+{-# LINE 237 "Myth/Internal.hsc" #-}
         (\hsc_ptr -> pokeByteOff hsc_ptr 28) ptr height
-{-# LINE 210 "Myth/Internal.hsc" #-}
+{-# LINE 238 "Myth/Internal.hsc" #-}
         (\hsc_ptr -> pokeByteOff hsc_ptr 32) ptr check_fd
-{-# LINE 211 "Myth/Internal.hsc" #-}
+{-# LINE 239 "Myth/Internal.hsc" #-}
         (\hsc_ptr -> pokeByteOff hsc_ptr 40) ptr check_task
-{-# LINE 212 "Myth/Internal.hsc" #-}
+{-# LINE 240 "Myth/Internal.hsc" #-}
 
 foreign import ccall unsafe "display_bind"
     c_display_bind :: Ptr Display -> Word32 -> Ptr WlOutputInterface -> CInt -> IO (Ptr WlOutput)
@@ -285,6 +325,9 @@ foreign import ccall unsafe "display_watch_fd"
 
 foreign import ccall unsafe "timerfd_create"
     c_timerfd_create :: TimerFdOption -> TimerFdOption -> IO (Fd)
+
+foreign import ccall unsafe "timerfd_settime"
+    c_timerfd_settime :: Fd -> CInt -> Ptr ITimerSpec -> Ptr ITimerSpec -> IO ()
 
 foreign import ccall unsafe "window_add_widget"
     c_window_add_widget :: Ptr Window -> Ptr () -> IO (Ptr Widget)
@@ -352,17 +395,17 @@ foreign import ccall unsafe "wl_proxy_marshal"
 c_weston_desktop_shell_desktop_ready :: Ptr WestonDesktopShell -> IO ()
 c_weston_desktop_shell_desktop_ready ds_ptr =
     c_wl_proxy_marshal ds_ptr 5 nullPtr nullPtr
-{-# LINE 303 "Myth/Internal.hsc" #-}
+{-# LINE 334 "Myth/Internal.hsc" #-}
 
 c_weston_desktop_shell_set_background :: Ptr WestonDesktopShell -> Ptr WlOutput -> Ptr WlSurface -> IO ()
 c_weston_desktop_shell_set_background ds_ptr wlo_ptr s_ptr =
     c_wl_proxy_marshal ds_ptr 0 (castPtr wlo_ptr :: Ptr ()) (castPtr s_ptr :: Ptr ())
-{-# LINE 307 "Myth/Internal.hsc" #-}
+{-# LINE 338 "Myth/Internal.hsc" #-}
 
 c_weston_desktop_shell_set_grab_surface :: Ptr WestonDesktopShell -> Ptr WlSurface -> IO ()
 c_weston_desktop_shell_set_grab_surface ds_ptr s_ptr =
     c_wl_proxy_marshal ds_ptr 4 (castPtr s_ptr :: Ptr ()) nullPtr
-{-# LINE 311 "Myth/Internal.hsc" #-}
+{-# LINE 342 "Myth/Internal.hsc" #-}
 
 foreign import ccall unsafe "wrapper"
     mkStatusCheckForeign ::            (Ptr Task -> Word32 -> IO ()) ->
