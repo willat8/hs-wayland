@@ -21,10 +21,10 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-/*#ifndef _WINDOW_H_
+#ifndef _WINDOW_H_
 #define _WINDOW_H_
 
-#include "config.h"
+/*#include "config.h"
 
 #include <stdint.h>
 #include <xkbcommon/xkbcommon.h>*/
@@ -704,7 +704,7 @@ keysym_modifiers_add(struct wl_array *modifiers_map,
 
 xkb_mod_mask_t
 keysym_modifiers_get_mask(struct wl_array *modifiers_map,
-			  const char *name);
+			  const char *name);*/
 
-#endif*/
+#endif
 
