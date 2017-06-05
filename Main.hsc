@@ -72,7 +72,7 @@ redrawHandler widget_ptr d_ptr = do
 
 statusConfigure status_ptr = do
     Status display_ptr window_ptr widget_ptr w h check_fd _ <- peek status_ptr
-    c_display_watch_fd display_ptr check_fd epollin (status_ptr `plusPtr` #{offset struct status, check_task})
+    c_display_watch_fd display_ptr check_fd epollin (#{ptr struct status, check_task} status_ptr)
     with (ITimerSpec (TimeSpec 5 0) (TimeSpec 5 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
     rh_funp <- mkRedrawHandlerForeign redrawHandler
     c_widget_set_redraw_handler widget_ptr rh_funp
