@@ -238,8 +238,14 @@ foreign import ccall unsafe "window_get_user_data"
 foreign import ccall unsafe "window_get_wl_surface"
     c_window_get_wl_surface :: Ptr Window -> IO (Ptr WlSurface)
 
+foreign import ccall unsafe "window_schedule_redraw"
+    c_window_schedule_redraw :: Ptr Window -> IO ()
+
 foreign import ccall unsafe "window_schedule_resize"
     c_window_schedule_resize :: Ptr Window -> Int32 -> Int32 -> IO ()
+
+foreign import ccall unsafe "window_set_key_handler"
+    c_window_set_key_handler :: Ptr Window -> FunPtr(Ptr Window -> Ptr Input -> Word32 -> Word32 -> Word32 -> CInt -> Ptr () -> IO ()) -> IO ()
 
 foreign import ccall unsafe "window_set_user_data"
     c_window_set_user_data :: Ptr Window -> Ptr () -> IO ()
@@ -299,6 +305,10 @@ foreign import ccall unsafe "wrapper"
 foreign import ccall unsafe "wrapper"
     mkRedrawHandlerForeign ::            (Ptr Widget -> Ptr () -> IO ()) ->
                               IO (FunPtr (Ptr Widget -> Ptr () -> IO ()))
+
+foreign import ccall unsafe "wrapper"
+    mkKeyHandlerForeign ::            (Ptr Window -> Ptr Input -> Word32 -> Word32 -> Word32 -> CInt -> Ptr () -> IO ()) ->
+                           IO (FunPtr (Ptr Window -> Ptr Input -> Word32 -> Word32 -> Word32 -> CInt -> Ptr () -> IO ()))
 
 foreign import ccall unsafe "wrapper"
     mkSurfaceConfigureForeign ::            (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
