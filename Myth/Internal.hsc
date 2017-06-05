@@ -7,7 +7,6 @@ import Foreign.C.String
 import Foreign.C.Types
 import qualified Graphics.Rendering.Cairo.Types as XP
 import System.Posix.Types
-import System.Posix.IO
 
 #include "../C/window.h"
 #include "../C/weston-desktop-shell-client-protocol.h"
@@ -74,11 +73,6 @@ foreign import ccall unsafe "&wl_output_interface"
     c_wl_output_interface :: Ptr WlOutputInterface
 foreign import ccall unsafe "&weston_desktop_shell_interface"
     c_weston_desktop_shell_interface :: Ptr WlOutputInterface
-
-statusCheckTaskContainer task_ptr = plusPtr task_ptr (-1 * #offset struct status, check_task) :: Ptr Status
-statusCheckTaskPtr status_ptr = plusPtr status_ptr (#offset struct status, check_task) :: Ptr Task
-
-readStatusCheckFd fd = fdRead fd #{size uint64_t}
 
 data Display
 data WestonDesktopShell
@@ -334,11 +328,11 @@ c_weston_desktop_shell_desktop_ready ds_ptr =
 
 c_weston_desktop_shell_set_background :: Ptr WestonDesktopShell -> Ptr WlOutput -> Ptr WlSurface -> IO ()
 c_weston_desktop_shell_set_background ds_ptr wlo_ptr s_ptr =
-    c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_BACKGROUND} (castPtr wlo_ptr :: Ptr ()) (castPtr s_ptr :: Ptr ())
+    c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_BACKGROUND} (castPtr wlo_ptr) (castPtr s_ptr)
 
 c_weston_desktop_shell_set_grab_surface :: Ptr WestonDesktopShell -> Ptr WlSurface -> IO ()
 c_weston_desktop_shell_set_grab_surface ds_ptr s_ptr =
-    c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_GRAB_SURFACE} (castPtr s_ptr :: Ptr ()) nullPtr
+    c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_GRAB_SURFACE} (castPtr s_ptr) nullPtr
 
 foreign import ccall unsafe "wrapper"
     mkStatusCheckForeign ::            (Ptr Task -> Word32 -> IO ()) ->

@@ -7,7 +7,7 @@ westondeps = ../weston/protocol/weston_desktop_shell-weston-desktop-shell-protoc
 all: hsmyth
 .PHONY: all
 
-Myth/Internal.hs: Myth/Internal.hsc
+%.hs: %.hsc
 	hsc2hs $(CFLAGS) $^
 
 hsmyth: Myth/Internal.hs Main.hs

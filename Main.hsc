@@ -1,6 +1,4 @@
-{-# LINE 1 "Main.hsc" #-}
 module Main where
-{-# LINE 2 "Main.hsc" #-}
 import Myth.Internal
 import Foreign
 import Foreign.Ptr
@@ -14,11 +12,17 @@ import System.Random
 import Control.Monad.Trans (liftIO)
 
 -- How can we move these into a common file?
+#include "C/window.h"
 
-{-# LINE 16 "Main.hsc" #-}
-
-
-{-# LINE 26 "Main.hsc" #-}
+#{def struct status {
+    struct display *display;
+    struct window *window;
+    struct widget *widget;
+    int width, height;
+    int check_fd;
+    struct task check_task;
+  };
+}
 
 drawSquare w x y = do
     let h = w
@@ -55,11 +59,9 @@ drawStatus xpsurface w h = do
         drawSquare sq_dim (w - init_x - sq_dim) y
 
 statusCheck t_ptr events = do
-    let status_ptr = t_ptr `plusPtr` negate (40)
-{-# LINE 63 "Main.hsc" #-}
+    let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
     Status _ _ widget_ptr _ _ check_fd _ <- peek status_ptr
-    fdRead check_fd (8)
-{-# LINE 65 "Main.hsc" #-}
+    fdRead check_fd #{size uint64_t}
     c_widget_schedule_redraw widget_ptr
 
 redrawHandler widget_ptr d_ptr = do
@@ -70,8 +72,7 @@ redrawHandler widget_ptr d_ptr = do
 
 statusConfigure status_ptr = do
     Status display_ptr window_ptr widget_ptr w h check_fd _ <- peek status_ptr
-    c_display_watch_fd display_ptr check_fd epollin (status_ptr `plusPtr` (40))
-{-# LINE 76 "Main.hsc" #-}
+    c_display_watch_fd display_ptr check_fd epollin (status_ptr `plusPtr` #{offset struct status, check_task})
     with (ITimerSpec (TimeSpec 5 0) (TimeSpec 5 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
     rh_funp <- mkRedrawHandlerForeign redrawHandler
     c_widget_set_redraw_handler widget_ptr rh_funp
