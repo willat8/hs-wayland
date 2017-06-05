@@ -10,51 +10,9 @@ import System.Posix.Types
 
 #include "../C/window.h"
 #include "../C/weston-desktop-shell-client-protocol.h"
+#include "../C/hsmyth.h"
 #include <sys/timerfd.h>
 #include <sys/epoll.h>
-
-#{def struct desktop {
-    struct display *display;
-    struct weston_desktop_shell *shell;
-    struct output *output;
-    struct window *grab_window;
-    struct widget *grab_widget;
-    enum cursor_type grab_cursor;
-  };
-}
-
-#{def struct surface {
-    void (*configure)(void *data,
-                      struct weston_desktop_shell *desktop_shell,
-                      uint32_t edges,
-                      struct window *window,
-                      int32_t width,
-                      int32_t height);
-  };
-}
-
-#{def struct background {
-    struct surface base;
-    struct window *window;
-    struct widget *widget;
-  };
-}
-
-#{def struct output {
-    struct wl_output *output;
-    struct background *background;
-  };
-}
-
-#{def struct status {
-    struct display *display;
-    struct window *window;
-    struct widget *widget;
-    int width, height;
-    int check_fd;
-    struct task check_task;
-  };
-}
 
 newtype CursorType = CursorType { unCursorType :: CInt }
     deriving (Eq,Show)

@@ -11,18 +11,7 @@ import System.Posix.IO
 import System.Random
 import Control.Monad.Trans (liftIO)
 
--- How can we move these into a common file?
-#include "C/window.h"
-
-#{def struct status {
-    struct display *display;
-    struct window *window;
-    struct widget *widget;
-    int width, height;
-    int check_fd;
-    struct task check_task;
-  };
-}
+#include "C/hsmyth.h"
 
 drawSquare w x y = do
     let h = w
