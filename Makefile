@@ -8,7 +8,7 @@ all: hsmyth
 .PHONY: all
 
 %.hs: %.hsc
-	hsc2hs $(CFLAGS) $^
+	hsc2hs -i sys/timerfd.h -i sys/epoll.h -i $$(pwd)/C/hsmyth.h $(CFLAGS) $^
 
 hsmyth: Myth/Internal.hs Main.hs
 	ghc -o $@ --make $(LDLIBS) Main $(westondeps)

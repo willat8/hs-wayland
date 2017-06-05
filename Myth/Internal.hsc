@@ -8,12 +8,6 @@ import Foreign.C.Types
 import qualified Graphics.Rendering.Cairo.Types as XP
 import System.Posix.Types
 
-#include "../C/window.h"
-#include "../C/weston-desktop-shell-client-protocol.h"
-#include "../C/hsmyth.h"
-#include <sys/timerfd.h>
-#include <sys/epoll.h>
-
 newtype CursorType = CursorType { unCursorType :: CInt }
     deriving (Eq,Show)
 #enum CursorType, CursorType, CURSOR_LEFT_PTR

@@ -11,8 +11,6 @@ import System.Posix.IO
 import System.Random
 import Control.Monad.Trans (liftIO)
 
-#include "C/hsmyth.h"
-
 drawSquare w x y = do
     let h = w
         aspect = 1
