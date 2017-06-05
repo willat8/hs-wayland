@@ -1,4 +1,4 @@
-LDLIBS=-lwayland-client -lxkbcommon -lwayland-cursor -lpixman-1 -lcairo -lpng16 -lwebp -ljpeg -lm
+LDLIBS=-lwayland-client -lxkbcommon -lwayland-cursor -lpixman-1 -lcairo -lpng16 -lm
 
 CFLAGS=-I/usr/include/cairo
 
