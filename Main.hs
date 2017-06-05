@@ -8,13 +8,17 @@ import qualified Graphics.Rendering.Cairo as XP
 import qualified Graphics.Rendering.Cairo.Types as XP
 import System.Posix.Types
 import System.Random
+import Control.Monad.Trans (liftIO)
 
-drawSquare w x y c1 c2 c3 = do
+drawSquare w x y = do
     let h = w
         aspect = 1
         corner_radius = h / 10
         radius = corner_radius / aspect
         degrees = pi / 180
+    c1 <- liftIO $ getStdRandom (randomR (0, 256))
+    c2 <- liftIO $ getStdRandom (randomR (0, 256))
+    c3 <- liftIO $ getStdRandom (randomR (0, 256))
     XP.newPath
     XP.arc (x + w - radius) (y + radius) radius (-90 * degrees) (0 * degrees)
     XP.arc (x + w - radius) (y + h - radius) radius (0 * degrees) (90 * degrees)
@@ -28,9 +32,6 @@ drawSquare w x y c1 c2 c3 = do
     XP.stroke
 
 drawStatus xpsurface w h = do
-    c1 <- getStdRandom (randomR (0, 256))
-    c2 <- getStdRandom (randomR (0, 256))
-    c3 <- getStdRandom (randomR (0, 256))
     XP.renderWith xpsurface $ do
         XP.setOperator XP.OperatorSource
         XP.setSourceRGBA 0 0 0 0
@@ -39,9 +40,9 @@ drawStatus xpsurface w h = do
         let sq_dim = 100
         let init_x = 160
         let y = (h - sq_dim) / 2
-        drawSquare sq_dim init_x y c1 c2 c3
-        drawSquare sq_dim ((w - sq_dim) / 2) y c1 c2 c3
-        drawSquare sq_dim (w - init_x - sq_dim) y c1 c2 c3
+        drawSquare sq_dim init_x y
+        drawSquare sq_dim ((w - sq_dim) / 2) y
+        drawSquare sq_dim (w - init_x - sq_dim) y
 
 statusCheck t_ptr events = do
     let status_ptr = statusCheckTaskContainer t_ptr

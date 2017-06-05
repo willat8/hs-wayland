@@ -36,14 +36,14 @@ import System.Posix.IO
 {-# LINE 59 "Myth/Internal.hsc" #-}
 
 newtype CursorType = CursorType { unCursorType :: CInt }
-    deriving (Eq, Show)
+    deriving (Eq,Show)
 cursorLeftPtr :: CursorType
 cursorLeftPtr = CursorType 4
 
 {-# LINE 63 "Myth/Internal.hsc" #-}
 
 newtype TimerFdOption = TimerFdOption { unTimerFdOption :: CInt }
-    deriving (Eq, Show)
+    deriving (Eq,Show)
 clockMonotonic :: TimerFdOption
 clockMonotonic = TimerFdOption 1
 tfdCloexec :: TimerFdOption
@@ -52,7 +52,7 @@ tfdCloexec = TimerFdOption 524288
 {-# LINE 67 "Myth/Internal.hsc" #-}
 
 newtype EpollOperation = EpollOperation { unEpollOperation :: CInt }
-    deriving (Eq, Show)
+    deriving (Eq,Show)
 epollin :: EpollOperation
 epollin = EpollOperation 1
 

@@ -58,15 +58,15 @@ import System.Posix.IO
 }
 
 newtype CursorType = CursorType { unCursorType :: CInt }
-    deriving (Eq, Show)
+    deriving (Eq,Show)
 #enum CursorType, CursorType, CURSOR_LEFT_PTR
 
 newtype TimerFdOption = TimerFdOption { unTimerFdOption :: CInt }
-    deriving (Eq, Show)
+    deriving (Eq,Show)
 #enum TimerFdOption, TimerFdOption, CLOCK_MONOTONIC, TFD_CLOEXEC
 
 newtype EpollOperation = EpollOperation { unEpollOperation :: CInt }
-    deriving (Eq, Show)
+    deriving (Eq,Show)
 #enum EpollOperation, EpollOperation, EPOLLIN
 
 data WlOutputInterface
