@@ -95,8 +95,6 @@ desktopShellGrabCursor d_ptr ds_ptr c = do
     let desktop_ptr = castPtr d_ptr
     peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopCursorType = cursorLeftPtr }
 
-keyHandler window_ptr input_ptr time key sym state d_ptr = c_window_schedule_redraw window_ptr
-
 backgroundCreate desktop_ptr = do
     mallocForeignPtr >>= \bg_fp -> withForeignPtr bg_fp $ \bg_ptr -> do
         display_ptr <- peek desktop_ptr >>= return . desktopDisplay
@@ -106,7 +104,6 @@ backgroundCreate desktop_ptr = do
         poke bg_ptr (Background base window_ptr widget_ptr)
         c_window_set_user_data window_ptr $ castPtr bg_ptr
         c_widget_set_transparent widget_ptr 0
-        mkKeyHandlerForeign keyHandler >>= c_window_set_key_handler window_ptr
         return bg_fp
 
 grabSurfaceEnterHandler widget_ptr input_ptr x y d_ptr = do
