@@ -89,7 +89,7 @@ desktopShellConfigure d_ptr ds_ptr edges wl_surface_ptr w h = do
     Surface configure_funp <- peek surface_ptr
     mkSurfaceConfigure configure_funp d_ptr ds_ptr edges window_ptr w h
 
-desktopShellPrepareLockSurface d_ptr ds_ptr = return ()
+desktopShellPrepareLockSurface _ = c_weston_desktop_shell_unlock
 
 desktopShellGrabCursor d_ptr ds_ptr c = do
     let desktop_ptr = castPtr d_ptr

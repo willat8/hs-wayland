@@ -284,6 +284,10 @@ c_weston_desktop_shell_desktop_ready :: Ptr WestonDesktopShell -> IO ()
 c_weston_desktop_shell_desktop_ready ds_ptr =
     c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_DESKTOP_READY} nullPtr nullPtr
 
+c_weston_desktop_shell_unlock :: Ptr WestonDesktopShell -> IO ()
+c_weston_desktop_shell_unlock ds_ptr =
+    c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_UNLOCK} nullPtr nullPtr
+
 c_weston_desktop_shell_set_background :: Ptr WestonDesktopShell -> Ptr WlOutput -> Ptr WlSurface -> IO ()
 c_weston_desktop_shell_set_background ds_ptr wlo_ptr s_ptr =
     c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_BACKGROUND} (castPtr wlo_ptr) (castPtr s_ptr)
