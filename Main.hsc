@@ -179,14 +179,14 @@ main = do
         statusConfigure status_ptr
         c_display_run display_ptr
         -- Clean up
-        peek status_ptr >>= c_widget_destroy . statusWidget
-        peek status_ptr >>= c_window_destroy . statusWindow
-        peek desktop_ptr >>= c_widget_destroy . desktopWidget
-        peek desktop_ptr >>= c_window_destroy . desktopWindow
-        peek bg_ptr >>= c_widget_destroy . backgroundWidget
-        peek bg_ptr >>= c_window_destroy . backgroundWindow
-        peek o_ptr >>= c_wl_output_destroy . outputWlOutput
-        peek desktop_ptr >>= c_weston_desktop_shell_destroy . desktopShell
+        c_widget_destroy =<< statusWidget <$> peek status_ptr
+        c_window_destroy =<< statusWindow <$> peek status_ptr
+        c_widget_destroy =<< desktopWidget <$> peek desktop_ptr
+        c_window_destroy =<< desktopWindow <$> peek desktop_ptr
+        c_widget_destroy =<< backgroundWidget <$> peek bg_ptr
+        c_window_destroy =<< backgroundWindow <$> peek bg_ptr
+        c_wl_output_destroy =<< outputWlOutput <$> peek o_ptr
+        c_weston_desktop_shell_destroy =<< desktopShell <$> peek desktop_ptr
         )))
     return 0
 
