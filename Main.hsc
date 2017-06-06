@@ -61,7 +61,7 @@ redrawHandler widget_ptr d_ptr = do
 
 buttonHandler widget_ptr input_ptr time button state d_ptr = do
     Status display_ptr window_ptr _ _ _ _ _ <- peek $ castPtr d_ptr
-    if state == #{const WL_POINTER_BUTTON_STATE_PRESSED}
+    if state == wlPointerButtonStatePressed
         then c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
         else return ()
 

@@ -10,6 +10,7 @@ import System.Posix.Types
 
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
+#include <wayland-client.h>
 #include "../C/window.h"
 #include "../C/weston-desktop-shell-client-protocol.h"
 #include "../C/hsmyth.h"
@@ -17,6 +18,10 @@ import System.Posix.Types
 newtype CursorType = CursorType { unCursorType :: CInt }
     deriving (Eq,Show)
 #enum CursorType, CursorType, CURSOR_LEFT_PTR
+
+newtype WlPointerButtonState = WlPointerButtonState { unWlPointerButtonState :: CInt }
+    deriving (Eq,Show)
+#enum WlPointerButtonState, WlPointerButtonState, WL_POINTER_BUTTON_STATE_PRESSED
 
 newtype TimerFdOption = TimerFdOption { unTimerFdOption :: CInt }
     deriving (Eq,Show)
@@ -266,7 +271,7 @@ foreign import ccall unsafe "widget_set_enter_handler"
     c_widget_set_enter_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr Input -> Float -> Float -> Ptr () -> IO (CursorType)) -> IO ()
 
 foreign import ccall unsafe "widget_set_button_handler"
-    c_widget_set_button_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> CInt -> Ptr () -> IO ()) -> IO ()
+    c_widget_set_button_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> WlPointerButtonState -> Ptr () -> IO ()) -> IO ()
 
 foreign import ccall unsafe "widget_set_redraw_handler"
     c_widget_set_redraw_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr () -> IO ()) -> IO ()
@@ -314,8 +319,8 @@ foreign import ccall unsafe "wrapper"
                               IO (FunPtr (Ptr Widget -> Ptr () -> IO ()))
 
 foreign import ccall unsafe "wrapper"
-    mkButtonHandlerForeign ::            (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> CInt -> Ptr () -> IO ()) ->
-                              IO (FunPtr (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> CInt -> Ptr () -> IO ()))
+    mkButtonHandlerForeign ::            (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> WlPointerButtonState -> Ptr () -> IO ()) ->
+                              IO (FunPtr (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> WlPointerButtonState -> Ptr () -> IO ()))
 
 foreign import ccall unsafe "wrapper"
     mkSurfaceConfigureForeign ::            (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
