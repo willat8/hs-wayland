@@ -69,12 +69,9 @@ statusConfigure status_ptr = do
     Status display_ptr window_ptr widget_ptr w h check_fd _ <- peek status_ptr
     c_display_watch_fd display_ptr check_fd epollin (#{ptr struct status, check_task} status_ptr)
     with (ITimerSpec (TimeSpec 5 0) (TimeSpec 5 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
-    rh_funp <- mkRedrawHandlerForeign redrawHandler
-    bh_funp <- mkButtonHandlerForeign buttonHandler
-    c_widget_set_redraw_handler widget_ptr rh_funp
-    c_widget_set_button_handler widget_ptr bh_funp
+    c_widget_set_redraw_handler widget_ptr =<< mkRedrawHandlerForeign redrawHandler
+    c_widget_set_button_handler widget_ptr =<< mkButtonHandlerForeign buttonHandler
     c_window_schedule_resize window_ptr w h
-    return (rh_funp, bh_funp)
 
 statusCreate display_ptr w h = do
     mallocForeignPtr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
@@ -124,10 +121,8 @@ grabSurfaceCreate desktop_ptr = do
     c_weston_desktop_shell_set_grab_surface ds_ptr s
     widget_ptr <- c_window_add_widget window_ptr $ castPtr desktop_ptr
     c_widget_set_allocation widget_ptr 0 0 1 1
-    gseh_funp <- mkGrabSurfaceEnterHandlerForeign grabSurfaceEnterHandler
-    c_widget_set_enter_handler widget_ptr gseh_funp
+    c_widget_set_enter_handler widget_ptr =<< mkGrabSurfaceEnterHandlerForeign grabSurfaceEnterHandler
     peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopWindow = window_ptr, desktopWidget = widget_ptr }
-    return gseh_funp
 
 outputInit o_ptr desktop_ptr = do
     ds_ptr <- desktopShell <$> peek desktop_ptr
@@ -173,23 +168,17 @@ main = do
     displayCreate >>= (`withForeignPtr` \display_ptr -> do
     statusCreate display_ptr 800 480 >>= (`withForeignPtr` \status_ptr -> do
         peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopDisplay = display_ptr }
-        gh_funp <- mkGlobalHandlerForeign globalHandler
         c_display_set_user_data display_ptr $ castPtr desktop_ptr
-        c_display_set_global_handler display_ptr gh_funp
+        c_display_set_global_handler display_ptr =<< mkGlobalHandlerForeign globalHandler
         o_ptr <- desktopOutput <$> peek desktop_ptr
         bg_ptr <- outputBackground <$> peek o_ptr
         if bg_ptr == nullPtr
             then outputInit o_ptr desktop_ptr
             else return ()
-        gseh_funp <- grabSurfaceCreate desktop_ptr
-        (rh_funp, bh_funp) <- statusConfigure status_ptr
+        grabSurfaceCreate desktop_ptr
+        statusConfigure status_ptr
         c_display_run display_ptr
         -- Clean up
-        freeHaskellFunPtr rh_funp
-        freeHaskellFunPtr bh_funp
-        freeHaskellFunPtr gseh_funp
-        freeHaskellFunPtr gh_funp
-        peek status_ptr >>= (\(Task status_check_funp) -> freeHaskellFunPtr status_check_funp) . statusCheckTask
         peek status_ptr >>= c_widget_destroy . statusWidget
         peek status_ptr >>= c_window_destroy . statusWindow
         peek desktop_ptr >>= c_widget_destroy . desktopWidget
