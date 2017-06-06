@@ -47,30 +47,40 @@ drawStatus xpsurface w h = do
         drawSquare sq_dim ((w - sq_dim) / 2) y
         drawSquare sq_dim (w - init_x - sq_dim) y
 
-statusCheck t_ptr events = do
+statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
     Status _ _ widget_ptr _ _ check_fd _ <- peek status_ptr
     fdRead check_fd #{size uint64_t}
     c_widget_schedule_redraw widget_ptr
 
-redrawHandler widget_ptr d_ptr = do
+resizeHandler _ _ _ d_ptr = do
+    Status _ _ widget_ptr w h _ _ <- peek $ castPtr d_ptr
+    c_widget_set_size widget_ptr w h
+
+redrawHandler _ d_ptr = do
     Status _ window_ptr _ w h _ _ <- peek $ castPtr d_ptr
     xpsurface <- XP.mkSurface =<< c_window_get_surface window_ptr
     XP.manageSurface xpsurface
     drawStatus xpsurface (fromIntegral w) (fromIntegral h)
 
-buttonHandler _ input_ptr _ button state d_ptr = do
+buttonHandler _ input_ptr _ _ state d_ptr = do
     Status display_ptr window_ptr _ _ _ _ _ <- peek $ castPtr d_ptr
     if state == wlPointerButtonStatePressed
         then c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
         else return ()
 
+touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
+    Status display_ptr window_ptr _ _ _ _ _ <- peek $ castPtr d_ptr
+    c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
+
 statusConfigure status_ptr = do
     Status display_ptr window_ptr widget_ptr w h check_fd _ <- peek status_ptr
     c_display_watch_fd display_ptr check_fd epollin (#{ptr struct status, check_task} status_ptr)
     with (ITimerSpec (TimeSpec 5 0) (TimeSpec 5 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
+    c_widget_set_resize_handler widget_ptr =<< mkResizeHandlerForeign resizeHandler
     c_widget_set_redraw_handler widget_ptr =<< mkRedrawHandlerForeign redrawHandler
     c_widget_set_button_handler widget_ptr =<< mkButtonHandlerForeign buttonHandler
+    c_widget_set_touch_down_handler widget_ptr =<< mkTouchDownHandlerForeign touchDownHandler
     c_window_schedule_resize window_ptr w h
 
 statusCreate display_ptr w h = do

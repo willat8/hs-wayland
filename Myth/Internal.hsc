@@ -276,6 +276,15 @@ foreign import ccall unsafe "widget_set_button_handler"
 foreign import ccall unsafe "widget_set_redraw_handler"
     c_widget_set_redraw_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr () -> IO ()) -> IO ()
 
+foreign import ccall unsafe "widget_set_resize_handler"
+    c_widget_set_resize_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Int32 -> Int32 -> Ptr () -> IO ()) -> IO ()
+
+foreign import ccall unsafe "widget_set_size"
+    c_widget_set_size :: Ptr Widget -> Int32 -> Int32 -> IO ()
+
+foreign import ccall unsafe "widget_set_touch_down_handler"
+    c_widget_set_touch_down_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> Int32 -> Float -> Float -> Ptr () -> IO ()) -> IO ()
+
 foreign import ccall unsafe "widget_set_transparent"
     c_widget_set_transparent :: Ptr Widget -> CInt -> IO ()
 
@@ -315,12 +324,20 @@ foreign import ccall unsafe "wrapper"
                             IO (FunPtr (Ptr Task -> Word32 -> IO ()))
 
 foreign import ccall unsafe "wrapper"
+    mkResizeHandlerForeign ::            (Ptr Widget -> Int32 -> Int32 -> Ptr () -> IO ()) ->
+                              IO (FunPtr (Ptr Widget -> Int32 -> Int32 -> Ptr () -> IO ()))
+
+foreign import ccall unsafe "wrapper"
     mkRedrawHandlerForeign ::            (Ptr Widget -> Ptr () -> IO ()) ->
                               IO (FunPtr (Ptr Widget -> Ptr () -> IO ()))
 
 foreign import ccall unsafe "wrapper"
     mkButtonHandlerForeign ::            (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> WlPointerButtonState -> Ptr () -> IO ()) ->
                               IO (FunPtr (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> WlPointerButtonState -> Ptr () -> IO ()))
+
+foreign import ccall unsafe "wrapper"
+    mkTouchDownHandlerForeign ::            (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> Int32 -> Float -> Float -> Ptr () -> IO ()) ->
+                                 IO (FunPtr (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> Int32 -> Float -> Float -> Ptr () -> IO ()))
 
 foreign import ccall unsafe "wrapper"
     mkSurfaceConfigureForeign ::            (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
