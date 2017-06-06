@@ -59,14 +59,22 @@ redrawHandler widget_ptr d_ptr = do
     XP.manageSurface xpsurface
     drawStatus xpsurface (fromIntegral w) (fromIntegral h)
 
+buttonHandler widget_ptr input_ptr time button state d_ptr = do
+    Status display_ptr window_ptr _ _ _ _ _ <- peek $ castPtr d_ptr
+    if state == #{const WL_POINTER_BUTTON_STATE_PRESSED}
+        then c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
+        else return ()
+
 statusConfigure status_ptr = do
     Status display_ptr window_ptr widget_ptr w h check_fd _ <- peek status_ptr
     c_display_watch_fd display_ptr check_fd epollin (#{ptr struct status, check_task} status_ptr)
     with (ITimerSpec (TimeSpec 5 0) (TimeSpec 5 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
     rh_funp <- mkRedrawHandlerForeign redrawHandler
+    bh_funp <- mkButtonHandlerForeign buttonHandler
     c_widget_set_redraw_handler widget_ptr rh_funp
+    c_widget_set_button_handler widget_ptr bh_funp
     c_window_schedule_resize window_ptr w h
-    return rh_funp
+    return (rh_funp, bh_funp)
 
 statusCreate display_ptr w h = do
     mallocForeignPtr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
@@ -174,10 +182,11 @@ main = do
             then outputInit o_ptr desktop_ptr
             else return ()
         gseh_funp <- grabSurfaceCreate desktop_ptr
-        rh_funp <- statusConfigure status_ptr
+        (rh_funp, bh_funp) <- statusConfigure status_ptr
         c_display_run display_ptr
         -- Clean up
         freeHaskellFunPtr rh_funp
+        freeHaskellFunPtr bh_funp
         freeHaskellFunPtr gseh_funp
         freeHaskellFunPtr gh_funp
         peek status_ptr >>= (\(Task status_check_funp) -> freeHaskellFunPtr status_check_funp) . statusCheckTask

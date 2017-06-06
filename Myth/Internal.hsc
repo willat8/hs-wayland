@@ -199,6 +199,9 @@ foreign import ccall unsafe "display_create"
 foreign import ccall unsafe "&display_destroy"
     c_display_destroy :: FinalizerPtr Display
 
+foreign import ccall unsafe "display_get_serial"
+    c_display_get_serial :: Ptr Display -> IO (Word32)
+
 foreign import ccall safe "display_run"
     c_display_run :: Ptr Display -> IO ()
 
@@ -238,6 +241,9 @@ foreign import ccall unsafe "window_get_user_data"
 foreign import ccall unsafe "window_get_wl_surface"
     c_window_get_wl_surface :: Ptr Window -> IO (Ptr WlSurface)
 
+foreign import ccall unsafe "window_move"
+    c_window_move :: Ptr Window -> Ptr Input -> Word32 -> IO ()
+
 foreign import ccall unsafe "window_schedule_resize"
     c_window_schedule_resize :: Ptr Window -> Int32 -> Int32 -> IO ()
 
@@ -258,6 +264,9 @@ foreign import ccall unsafe "widget_set_allocation"
 
 foreign import ccall unsafe "widget_set_enter_handler"
     c_widget_set_enter_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr Input -> Float -> Float -> Ptr () -> IO (CursorType)) -> IO ()
+
+foreign import ccall unsafe "widget_set_button_handler"
+    c_widget_set_button_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> CInt -> Ptr () -> IO ()) -> IO ()
 
 foreign import ccall unsafe "widget_set_redraw_handler"
     c_widget_set_redraw_handler :: Ptr Widget -> FunPtr (Ptr Widget -> Ptr () -> IO ()) -> IO ()
@@ -303,6 +312,10 @@ foreign import ccall unsafe "wrapper"
 foreign import ccall unsafe "wrapper"
     mkRedrawHandlerForeign ::            (Ptr Widget -> Ptr () -> IO ()) ->
                               IO (FunPtr (Ptr Widget -> Ptr () -> IO ()))
+
+foreign import ccall unsafe "wrapper"
+    mkButtonHandlerForeign ::            (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> CInt -> Ptr () -> IO ()) ->
+                              IO (FunPtr (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> CInt -> Ptr () -> IO ()))
 
 foreign import ccall unsafe "wrapper"
     mkSurfaceConfigureForeign ::            (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
