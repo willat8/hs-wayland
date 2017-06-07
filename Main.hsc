@@ -34,18 +34,17 @@ drawSquare w x y = do
     XP.setLineWidth 10
     XP.stroke
 
-drawStatus xpsurface w h = do
-    XP.renderWith xpsurface $ do
-        XP.setOperator XP.OperatorSource
-        XP.setSourceRGBA 0 0 0 0
-        XP.paint
-        XP.setOperator XP.OperatorOver
-        let sq_dim = 100
-        let init_x = 160
-        let y = (h - sq_dim) / 2
-        drawSquare sq_dim init_x y
-        drawSquare sq_dim ((w - sq_dim) / 2) y
-        drawSquare sq_dim (w - init_x - sq_dim) y
+drawStatus xpsurface w h = XP.renderWith xpsurface $ do
+    XP.setOperator XP.OperatorSource
+    XP.setSourceRGBA 0 0 0 0
+    XP.paint
+    XP.setOperator XP.OperatorOver
+    let sq_dim = 100
+    let init_x = 160
+    let y = (h - sq_dim) / 2
+    drawSquare sq_dim init_x y
+    drawSquare sq_dim ((w - sq_dim) / 2) y
+    drawSquare sq_dim (w - init_x - sq_dim) y
 
 statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
