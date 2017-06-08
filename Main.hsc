@@ -111,8 +111,7 @@ desktopShellGrabCursor d_ptr _ _ = do
     peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopCursorType = cursorLeftPtr }
 
 backgroundCreate desktop_ptr = do
-    bg_fp <- mallocForeignPtr
-    withForeignPtr bg_fp $ \bg_ptr -> do
+    mallocForeignPtr >>= \bg_fp -> withForeignPtr bg_fp $ \bg_ptr -> do
         FC.addForeignPtrFinalizer bg_fp $ peek bg_ptr >>= \(Background _ window_ptr widget_ptr) -> windowDestroy widget_ptr window_ptr
         display_ptr <- desktopDisplay <$> peek desktop_ptr
         base <- Surface <$> mkSurfaceConfigureForeign backgroundConfigure
@@ -121,7 +120,7 @@ backgroundCreate desktop_ptr = do
         poke bg_ptr (Background base window_ptr widget_ptr)
         c_window_set_user_data window_ptr $ castPtr bg_ptr
         c_widget_set_transparent widget_ptr 0
-    return bg_fp
+        return bg_fp
 
 grabSurfaceEnterHandler _ _ _ _ d_ptr = return . desktopCursorType =<< peek (castPtr d_ptr)
 
@@ -180,10 +179,10 @@ windowDestroy widget_ptr window_ptr = do
     c_window_destroy window_ptr
 
 desktopCreate = do
-    desktop_fp <- mallocForeignPtr
-    withForeignPtr desktop_fp $ \desktop_ptr -> FC.addForeignPtrFinalizer desktop_fp $
-        peek desktop_ptr >>= \(Desktop _ _ _ window_ptr widget_ptr _) -> windowDestroy widget_ptr window_ptr
-    return desktop_fp
+    mallocForeignPtr >>= \desktop_fp -> withForeignPtr desktop_fp $ \desktop_ptr -> do
+        FC.addForeignPtrFinalizer desktop_fp $
+            peek desktop_ptr >>= \(Desktop _ _ _ window_ptr widget_ptr _) -> windowDestroy widget_ptr window_ptr
+        return desktop_fp
 
 main = do
     displayCreate >>= (`withForeignPtr` \display_ptr -> do
