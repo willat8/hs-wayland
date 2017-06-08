@@ -4,6 +4,7 @@ import Foreign
 import Foreign.Ptr
 import Foreign.C.String
 import Foreign.C.Types
+import qualified Foreign.Concurrent as FC
 import qualified Graphics.Rendering.Cairo as XP
 import qualified Graphics.Rendering.Cairo.Types as XP
 import System.Posix.Types
@@ -109,12 +110,10 @@ desktopShellGrabCursor d_ptr _ _ = do
     let desktop_ptr = castPtr d_ptr
     peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopCursorType = cursorLeftPtr }
 
-backgroundDestroy bg_ptr = peek bg_ptr >>= \(Background _ window_ptr widget_ptr) -> windowDestroy widget_ptr window_ptr
-
 backgroundCreate desktop_ptr = do
     bg_fp <- mallocForeignPtr
-    (`addForeignPtrFinalizer` bg_fp) =<< mkBackgroundDestroyForeign backgroundDestroy
     withForeignPtr bg_fp $ \bg_ptr -> do
+        FC.addForeignPtrFinalizer bg_fp $ peek bg_ptr >>= \(Background _ window_ptr widget_ptr) -> windowDestroy widget_ptr window_ptr
         display_ptr <- desktopDisplay <$> peek desktop_ptr
         base <- Surface <$> mkSurfaceConfigureForeign backgroundConfigure
         window_ptr <- c_window_create_custom display_ptr
@@ -180,11 +179,10 @@ windowDestroy widget_ptr window_ptr = do
     c_widget_destroy widget_ptr
     c_window_destroy window_ptr
 
-desktopDestroy desktop_ptr = peek desktop_ptr >>= \(Desktop _ _ _ window_ptr widget_ptr _) -> windowDestroy widget_ptr window_ptr
-
 desktopCreate = do
     desktop_fp <- mallocForeignPtr
-    (`addForeignPtrFinalizer` desktop_fp) =<< mkDesktopDestroyForeign desktopDestroy
+    withForeignPtr desktop_fp $ \desktop_ptr -> FC.addForeignPtrFinalizer desktop_fp $
+        peek desktop_ptr >>= \(Desktop _ _ _ window_ptr widget_ptr _) -> windowDestroy widget_ptr window_ptr
     return desktop_fp
 
 main = do
@@ -207,8 +205,6 @@ main = do
             c_display_unwatch_fd display_ptr check_fd
             closeFd check_fd
             windowDestroy widget_ptr window_ptr
-        -- peek desktop_ptr >>= \(Desktop _ _ _ window_ptr widget_ptr _) -> windowDestroy widget_ptr window_ptr
-        -- peek bg_ptr >>= \(Background _ window_ptr widget_ptr) -> windowDestroy widget_ptr window_ptr
         c_wl_output_destroy =<< outputWlOutput <$> peek o_ptr
         c_weston_desktop_shell_destroy =<< desktopShell <$> peek desktop_ptr
         )))
