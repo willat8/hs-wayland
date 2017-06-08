@@ -85,6 +85,10 @@ statusConfigure status_ptr = do
 
 statusCreate display_ptr w h = do
     mallocForeignPtr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
+        FC.addForeignPtrFinalizer status_fp $ peek status_ptr >>= \(Status _ window_ptr widget_ptr _ _ check_fd _) -> do
+            c_display_unwatch_fd display_ptr check_fd
+            closeFd check_fd
+            windowDestroy widget_ptr window_ptr
         window_ptr <- c_window_create display_ptr
         widget_ptr <- c_window_add_widget window_ptr $ castPtr status_ptr
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
@@ -180,13 +184,15 @@ windowDestroy widget_ptr window_ptr = do
 
 desktopCreate = do
     mallocForeignPtr >>= \desktop_fp -> withForeignPtr desktop_fp $ \desktop_ptr -> do
-        FC.addForeignPtrFinalizer desktop_fp $
-            peek desktop_ptr >>= \(Desktop _ _ _ window_ptr widget_ptr _) -> windowDestroy widget_ptr window_ptr
+        FC.addForeignPtrFinalizer desktop_fp $ peek desktop_ptr >>= \(Desktop _ ds_ptr o_ptr window_ptr widget_ptr _) -> do
+            windowDestroy widget_ptr window_ptr
+            c_wl_output_destroy =<< outputWlOutput <$> peek o_ptr
+            c_weston_desktop_shell_destroy ds_ptr
         return desktop_fp
 
 main = do
     displayCreate >>= (`withForeignPtr` \display_ptr -> do
-    desktopCreate >>= (`withForeignPtr` \desktop_ptr -> do -- use Finalizers for all of these?
+    desktopCreate >>= (`withForeignPtr` \desktop_ptr -> do
     statusCreate display_ptr 800 480 >>= (`withForeignPtr` \status_ptr -> do
         peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopDisplay = display_ptr }
         c_display_set_user_data display_ptr $ castPtr desktop_ptr
@@ -199,13 +205,5 @@ main = do
         grabSurfaceCreate desktop_ptr
         statusConfigure status_ptr
         c_display_run display_ptr
-        -- Clean up
-        peek status_ptr >>= \(Status _ window_ptr widget_ptr _ _ check_fd _) -> do
-            c_display_unwatch_fd display_ptr check_fd
-            closeFd check_fd
-            windowDestroy widget_ptr window_ptr
-        c_wl_output_destroy =<< outputWlOutput <$> peek o_ptr
-        c_weston_desktop_shell_destroy =<< desktopShell <$> peek desktop_ptr
         )))
-    return 0
 
