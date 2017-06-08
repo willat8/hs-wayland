@@ -216,6 +216,9 @@ foreign import ccall safe "display_set_global_handler"
 foreign import ccall unsafe "display_set_user_data"
     c_display_set_user_data :: Ptr Display -> Ptr () -> IO ()
 
+foreign import ccall unsafe "display_unwatch_fd"
+    c_display_unwatch_fd :: Ptr Display -> Fd -> IO ()
+
 foreign import ccall unsafe "display_watch_fd"
     c_display_watch_fd :: Ptr Display -> Fd -> EpollOperation -> Ptr Task -> IO ()
 

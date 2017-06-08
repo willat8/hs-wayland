@@ -172,8 +172,12 @@ globalHandler _ id interface_cs _ d_ptr = do
 
 displayCreate = alloca $ \argv -> c_display_create 0 argv >>= newForeignPtr c_display_destroy
 
+windowDestroy widget_ptr window_ptr = do
+    c_widget_destroy widget_ptr
+    c_window_destroy window_ptr
+
 main = do
-    mallocForeignPtr >>= (`withForeignPtr` \desktop_ptr -> do
+    mallocForeignPtr >>= (`withForeignPtr` \desktop_ptr -> do -- use Finalizers for all of these?
     displayCreate >>= (`withForeignPtr` \display_ptr -> do
     statusCreate display_ptr 800 480 >>= (`withForeignPtr` \status_ptr -> do
         peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopDisplay = display_ptr }
@@ -188,12 +192,12 @@ main = do
         statusConfigure status_ptr
         c_display_run display_ptr
         -- Clean up
-        c_widget_destroy =<< statusWidget <$> peek status_ptr
-        c_window_destroy =<< statusWindow <$> peek status_ptr
-        c_widget_destroy =<< desktopWidget <$> peek desktop_ptr
-        c_window_destroy =<< desktopWindow <$> peek desktop_ptr
-        c_widget_destroy =<< backgroundWidget <$> peek bg_ptr
-        c_window_destroy =<< backgroundWindow <$> peek bg_ptr
+        peek status_ptr >>= \(Status _ window_ptr widget_ptr _ _ check_fd _) -> do
+            c_display_unwatch_fd display_ptr check_fd
+            closeFd check_fd
+            windowDestroy widget_ptr window_ptr
+        peek desktop_ptr >>= \(Desktop _ _ _ window_ptr widget_ptr _) -> windowDestroy widget_ptr window_ptr
+        peek bg_ptr >>= \(Background _ window_ptr widget_ptr) -> windowDestroy widget_ptr window_ptr
         c_wl_output_destroy =<< outputWlOutput <$> peek o_ptr
         c_weston_desktop_shell_destroy =<< desktopShell <$> peek desktop_ptr
         )))
