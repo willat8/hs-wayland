@@ -366,6 +366,14 @@ foreign import ccall unsafe "wrapper"
     mkGlobalHandlerForeign ::            (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()) ->
                               IO (FunPtr (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()))
 
+foreign import ccall unsafe "wrapper"
+    mkDesktopDestroyForeign ::    (Ptr Desktop -> IO ()) ->
+                               IO (FinalizerPtr Desktop)
+
+foreign import ccall unsafe "wrapper"
+    mkBackgroundDestroyForeign ::    (Ptr Background -> IO ()) ->
+                                  IO (FinalizerPtr Background)
+
 foreign import ccall safe "dynamic"
     mkSurfaceConfigure :: FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
                                  (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ())
