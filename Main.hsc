@@ -116,7 +116,6 @@ desktopShellGrabCursor d_ptr _ _ = do
 
 backgroundCreate desktop_ptr = do
     mallocForeignPtr >>= \bg_fp -> withForeignPtr bg_fp $ \bg_ptr -> do
-        FC.addForeignPtrFinalizer bg_fp $ peek bg_ptr >>= \(Background _ window_ptr widget_ptr) -> windowDestroy widget_ptr window_ptr
         display_ptr <- desktopDisplay <$> peek desktop_ptr
         base <- Surface <$> mkSurfaceConfigureForeign backgroundConfigure
         window_ptr <- c_window_create_custom display_ptr
@@ -143,6 +142,7 @@ outputInit o_ptr desktop_ptr = do
     ds_ptr <- desktopShell <$> peek desktop_ptr
     wlo_ptr <- outputWlOutput <$> peek o_ptr
     backgroundCreate desktop_ptr >>= (`withForeignPtr` \bg_ptr -> do
+        peek o_ptr >>= \o -> poke o_ptr o { outputBackground = bg_ptr }
         window_ptr <- backgroundWindow <$> peek bg_ptr
         s <- c_window_get_wl_surface window_ptr
         c_weston_desktop_shell_set_background ds_ptr wlo_ptr s
@@ -186,14 +186,16 @@ desktopCreate = do
     mallocForeignPtr >>= \desktop_fp -> withForeignPtr desktop_fp $ \desktop_ptr -> do
         FC.addForeignPtrFinalizer desktop_fp $ peek desktop_ptr >>= \(Desktop _ ds_ptr o_ptr window_ptr widget_ptr _) -> do
             windowDestroy widget_ptr window_ptr
-            c_wl_output_destroy =<< outputWlOutput <$> peek o_ptr
+            Output wlo_ptr bg_ptr <- peek o_ptr
+            peek bg_ptr >>= \(Background _ window_ptr widget_ptr) -> windowDestroy widget_ptr window_ptr
+            c_wl_output_destroy wlo_ptr
             c_weston_desktop_shell_destroy ds_ptr
         return desktop_fp
 
 main = do
     displayCreate >>= (`withForeignPtr` \display_ptr -> do
-    desktopCreate >>= (`withForeignPtr` \desktop_ptr -> do
-    statusCreate display_ptr 800 480 >>= (`withForeignPtr` \status_ptr -> do
+    desktopCreate >>= \desktop_fp -> withForeignPtr desktop_fp $ \desktop_ptr -> do
+    statusCreate display_ptr 800 480 >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
         peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopDisplay = display_ptr }
         c_display_set_user_data display_ptr $ castPtr desktop_ptr
         c_display_set_global_handler display_ptr =<< mkGlobalHandlerForeign globalHandler
@@ -205,5 +207,7 @@ main = do
         grabSurfaceCreate desktop_ptr
         statusConfigure status_ptr
         c_display_run display_ptr
-        )))
+        finalizeForeignPtr status_fp
+        finalizeForeignPtr desktop_fp
+        )
 
