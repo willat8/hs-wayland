@@ -177,10 +177,9 @@ globalHandler _ id interface_cs _ d_ptr = do
             else return ()
 
 globalHandlerRemove _ _ interface_cs _ d_ptr = do
-    let desktop_ptr = castPtr d_ptr
     interface <- peekCString interface_cs
     if interface == "wl_output"
-        then outputDestroy =<< desktopOutput <$> peek desktop_ptr
+        then outputDestroy =<< desktopOutput <$> peek (castPtr d_ptr)
         else return ()
 
 displayCreate = alloca $ \argv -> c_display_create 0 argv >>= newForeignPtr c_display_destroy
