@@ -54,23 +54,23 @@ statusCheck t_ptr _ = do
     c_widget_schedule_redraw widget_ptr
 
 resizeHandler _ _ _ d_ptr = do
-    Status _ _ widget_ptr w h _ _ <- peek $ castPtr d_ptr
+    Status _ _ widget_ptr w h _ _ <- peek (castPtr d_ptr)
     c_widget_set_size widget_ptr w h
 
 redrawHandler _ d_ptr = do
-    Status _ window_ptr _ w h _ _ <- peek $ castPtr d_ptr
+    Status _ window_ptr _ w h _ _ <- peek (castPtr d_ptr)
     xpsurface <- XP.mkSurface =<< c_window_get_surface window_ptr
     XP.manageSurface xpsurface
     drawStatus xpsurface (fromIntegral w) (fromIntegral h)
 
 buttonHandler _ input_ptr _ _ state d_ptr = do
-    Status display_ptr window_ptr _ _ _ _ _ <- peek $ castPtr d_ptr
+    Status display_ptr window_ptr _ _ _ _ _ <- peek (castPtr d_ptr)
     if state == wlPointerButtonStatePressed
         then c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
         else return ()
 
 touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
-    Status display_ptr window_ptr _ _ _ _ _ <- peek $ castPtr d_ptr
+    Status display_ptr window_ptr _ _ _ _ _ <- peek (castPtr d_ptr)
     c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
 
 statusConfigure status_ptr = do
@@ -125,7 +125,7 @@ backgroundCreate desktop_ptr = do
         c_widget_set_transparent widget_ptr 0
         return bg_fp
 
-grabSurfaceEnterHandler _ _ _ _ d_ptr = return . desktopCursorType =<< peek (castPtr d_ptr)
+grabSurfaceEnterHandler _ _ _ _ d_ptr = desktopCursorType <$> peek (castPtr d_ptr)
 
 grabSurfaceCreate desktop_ptr = do
     Desktop display_ptr ds_ptr _ _ _ _ <- peek desktop_ptr
