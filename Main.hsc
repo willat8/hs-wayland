@@ -119,8 +119,9 @@ backgroundCreate desktop_ptr = do
         display_ptr <- desktopDisplay <$> peek desktop_ptr
         base <- Surface <$> mkSurfaceConfigureForeign backgroundConfigure
         window_ptr <- c_window_create_custom display_ptr
+        peek bg_ptr >>= \bg -> poke bg_ptr bg { backgroundSurface = base, backgroundWindow = window_ptr }
         widget_ptr <- c_window_add_widget window_ptr $ castPtr bg_ptr
-        poke bg_ptr (Background base window_ptr widget_ptr)
+        peek bg_ptr >>= \bg -> poke bg_ptr bg { backgroundWidget = widget_ptr }
         c_window_set_user_data window_ptr $ castPtr bg_ptr
         c_widget_set_transparent widget_ptr 0
         return bg_fp
@@ -130,13 +131,14 @@ grabSurfaceEnterHandler _ _ _ _ d_ptr = desktopCursorType <$> peek (castPtr d_pt
 grabSurfaceCreate desktop_ptr = do
     Desktop display_ptr ds_ptr _ _ _ _ <- peek desktop_ptr
     window_ptr <- c_window_create_custom display_ptr
+    peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopWindow = window_ptr }
     c_window_set_user_data window_ptr $ castPtr desktop_ptr
     s <- c_window_get_wl_surface window_ptr
     c_weston_desktop_shell_set_grab_surface ds_ptr s
     widget_ptr <- c_window_add_widget window_ptr $ castPtr desktop_ptr
     c_widget_set_allocation widget_ptr 0 0 1 1
     c_widget_set_enter_handler widget_ptr =<< mkGrabSurfaceEnterHandlerForeign grabSurfaceEnterHandler
-    peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopWindow = window_ptr, desktopWidget = widget_ptr }
+    peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopWidget = widget_ptr }
 
 outputInit o_ptr desktop_ptr = do
     ds_ptr <- desktopShell <$> peek desktop_ptr
