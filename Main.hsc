@@ -176,19 +176,29 @@ globalHandler _ id interface_cs _ d_ptr = do
             then createOutput desktop_ptr id
             else return ()
 
+globalHandlerRemove _ _ interface_cs _ d_ptr = do
+    let desktop_ptr = castPtr d_ptr
+    interface <- peekCString interface_cs
+    if interface == "wl_output"
+        then outputDestroy =<< desktopOutput <$> peek desktop_ptr
+        else return ()
+
 displayCreate = alloca $ \argv -> c_display_create 0 argv >>= newForeignPtr c_display_destroy
 
 windowDestroy widget_ptr window_ptr = do
     c_widget_destroy widget_ptr
     c_window_destroy window_ptr
 
+outputDestroy o_ptr = do
+    Output wlo_ptr bg_ptr <- peek o_ptr
+    peek bg_ptr >>= \(Background _ window_ptr widget_ptr) -> windowDestroy widget_ptr window_ptr
+    c_wl_output_destroy wlo_ptr
+
 desktopCreate = do
     mallocForeignPtr >>= \desktop_fp -> withForeignPtr desktop_fp $ \desktop_ptr -> do
         FC.addForeignPtrFinalizer desktop_fp $ peek desktop_ptr >>= \(Desktop _ ds_ptr o_ptr window_ptr widget_ptr _) -> do
             windowDestroy widget_ptr window_ptr
-            Output wlo_ptr bg_ptr <- peek o_ptr
-            peek bg_ptr >>= \(Background _ window_ptr widget_ptr) -> windowDestroy widget_ptr window_ptr
-            c_wl_output_destroy wlo_ptr
+            outputDestroy o_ptr
             c_weston_desktop_shell_destroy ds_ptr
         return desktop_fp
 
@@ -199,6 +209,7 @@ main = do
         peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopDisplay = display_ptr }
         c_display_set_user_data display_ptr $ castPtr desktop_ptr
         c_display_set_global_handler display_ptr =<< mkGlobalHandlerForeign globalHandler
+        c_display_set_global_handler_remove display_ptr =<< mkGlobalHandlerRemoveForeign globalHandlerRemove
         o_ptr <- desktopOutput <$> peek desktop_ptr
         bg_ptr <- outputBackground <$> peek o_ptr
         if bg_ptr == nullPtr

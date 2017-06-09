@@ -213,6 +213,9 @@ foreign import ccall safe "display_run"
 foreign import ccall safe "display_set_global_handler"
     c_display_set_global_handler :: Ptr Display -> FunPtr (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()) -> IO ()
 
+foreign import ccall safe "display_set_global_handler_remove"
+    c_display_set_global_handler_remove :: Ptr Display -> FunPtr (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()) -> IO ()
+
 foreign import ccall unsafe "display_set_user_data"
     c_display_set_user_data :: Ptr Display -> Ptr () -> IO ()
 
@@ -365,6 +368,10 @@ foreign import ccall unsafe "wrapper"
 foreign import ccall unsafe "wrapper"
     mkGlobalHandlerForeign ::            (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()) ->
                               IO (FunPtr (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()))
+
+foreign import ccall unsafe "wrapper"
+    mkGlobalHandlerRemoveForeign ::            (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()) ->
+                                    IO (FunPtr (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()))
 
 foreign import ccall safe "dynamic"
     mkSurfaceConfigure :: FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
