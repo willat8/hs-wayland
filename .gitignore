@@ -5,5 +5,5 @@
 !*.hsc
 !Myth
 !.gitignore
-!TODO
+!Myth/Status.hs
 

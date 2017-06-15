@@ -10,7 +10,7 @@ all: hsmyth
 %.hs: %.hsc
 	hsc2hs $(CFLAGS) $^
 
-hsmyth: Myth/Internal.hs Main.hs
+hsmyth: Myth/Internal.hs Myth/Status.hs Main.hs
 	ghc -o $@ --make $(LDLIBS) Main $(westondeps)
 
 install:

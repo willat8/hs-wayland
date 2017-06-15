@@ -1,5 +1,6 @@
 module Main where
 import Myth.Internal
+import Myth.Status
 import Foreign
 import Foreign.Ptr
 import Foreign.C.String
@@ -51,6 +52,7 @@ statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
     Status _ _ widget_ptr _ _ check_fd _ <- peek status_ptr
     fdRead check_fd #{size uint64_t}
+    x <- getStatus
     c_widget_schedule_redraw widget_ptr
 
 resizeHandler _ _ _ d_ptr = do
