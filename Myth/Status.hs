@@ -19,7 +19,7 @@ parseEncoders = withObject "EncoderList" $ \o -> do
     let Success statuses = parse (withArray "Encoders" $ \a -> mapM parseEncoder (V.toList a)) encs
     return . fromListLE $ (== "true") <$> statuses
 
-getStatus = do
+getStatusCode = do
     req <- parseRequest "http://worker1:6544/Dvr/GetEncoderList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")] }
 
     res <- (getResponseBody <$> httpJSON req) :: IO Value

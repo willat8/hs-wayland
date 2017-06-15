@@ -173,6 +173,7 @@ data Status = Status { statusDisplay   :: Ptr Display
                      , statusHeight    :: Int32
                      , statusCheckFd   :: Fd
                      , statusCheckTask :: Task
+                     , statusCode      :: CInt
                      }
 instance Storable Status where
     sizeOf _    = #{size struct status}
@@ -185,8 +186,9 @@ instance Storable Status where
         height <- #{peek struct status, height} ptr
         check_fd <- #{peek struct status, check_fd} ptr
         check_task <- #{peek struct status, check_task} ptr
-        return (Status display_ptr window_ptr widget_ptr width height check_fd check_task)
-    poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task) = do
+        code <- #{peek struct status, code} ptr
+        return (Status display_ptr window_ptr widget_ptr width height check_fd check_task code)
+    poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task code) = do
         #{poke struct status, display} ptr display_ptr
         #{poke struct status, window} ptr window_ptr
         #{poke struct status, widget} ptr widget_ptr
@@ -194,6 +196,7 @@ instance Storable Status where
         #{poke struct status, height} ptr height
         #{poke struct status, check_fd} ptr check_fd
         #{poke struct status, check_task} ptr check_task
+        #{poke struct status, code} ptr code
 
 foreign import ccall unsafe "display_bind"
     c_display_bind :: Ptr Display -> Word32 -> Ptr WlOutputInterface -> CInt -> IO (Ptr WlOutput)

@@ -37,5 +37,6 @@ struct status {
     int width, height;
     int check_fd;
     struct task check_task;
+    int code;
 };
 

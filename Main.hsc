@@ -10,33 +10,30 @@ import qualified Graphics.Rendering.Cairo as XP
 import qualified Graphics.Rendering.Cairo.Types as XP
 import System.Posix.Types
 import System.Posix.IO
-import System.Random
-import Control.Monad.Trans (liftIO)
+import Data.Bits.Bitwise
 
 #include "C/hsmyth.h"
 
-drawSquare w x y = do
+drawSquare w x y isGreen = do
     let h = w
         aspect = 1
         corner_radius = h / 10
         radius = corner_radius / aspect
         degrees = pi / 180
-    c1 <- liftIO $ getStdRandom (randomR (0, 256))
-    c2 <- liftIO $ getStdRandom (randomR (0, 256))
-    c3 <- liftIO $ getStdRandom (randomR (0, 256))
+    let (c1, c2, c3) = if isGreen then (148, 194, 105) else (239, 41, 41)
     XP.newPath
     XP.arc (x + w - radius) (y + radius) radius (-90 * degrees) (0 * degrees)
     XP.arc (x + w - radius) (y + h - radius) radius (0 * degrees) (90 * degrees)
     XP.arc (x + radius) (y + h - radius) radius (90 * degrees) (180 * degrees)
     XP.arc (x + radius) (y + radius) radius (180 * degrees) (270 * degrees)
     XP.closePath
-    XP.setSourceRGB (148 / 256) (194 / 256) (105 / 256)
+    XP.setSourceRGB (c1 / 256) (c2 / 256) (c3 / 256)
     XP.fillPreserve
     XP.setSourceRGBA (c1 / 256) (c2 / 256) (c3 / 256) 0.5
     XP.setLineWidth 10
     XP.stroke
 
-drawStatus xpsurface w h = XP.renderWith xpsurface $ do
+drawStatus xpsurface w h code = XP.renderWith xpsurface $ do
     XP.setOperator XP.OperatorSource
     XP.setSourceRGBA 0 0 0 0
     XP.paint
@@ -44,41 +41,43 @@ drawStatus xpsurface w h = XP.renderWith xpsurface $ do
     let sq_dim = 100
     let init_x = 160
     let y = (h - sq_dim) / 2
-    drawSquare sq_dim init_x y
-    drawSquare sq_dim ((w - sq_dim) / 2) y
-    drawSquare sq_dim (w - init_x - sq_dim) y
+    let statuses = toListLE (code :: Int)
+    drawSquare sq_dim init_x y (statuses !! 0)
+    drawSquare sq_dim ((w - sq_dim) / 2) y (statuses !! 1)
+    drawSquare sq_dim (w - init_x - sq_dim) y (statuses !! 2)
 
 statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
-    Status _ _ widget_ptr _ _ check_fd _ <- peek status_ptr
+    Status _ _ widget_ptr _ _ check_fd _ _ <- peek status_ptr
     fdRead check_fd #{size uint64_t}
-    x <- getStatus
+    code <- getStatusCode
+    peek status_ptr >>= \status -> poke status_ptr status { statusCode = fromIntegral code }
     c_widget_schedule_redraw widget_ptr
 
 resizeHandler _ _ _ d_ptr = do
-    Status _ _ widget_ptr w h _ _ <- peek (castPtr d_ptr)
+    Status _ _ widget_ptr w h _ _ _ <- peek (castPtr d_ptr)
     c_widget_set_size widget_ptr w h
 
 redrawHandler _ d_ptr = do
-    Status _ window_ptr _ w h _ _ <- peek (castPtr d_ptr)
+    Status _ window_ptr _ w h _ _ code <- peek (castPtr d_ptr)
     xpsurface <- XP.mkSurface =<< c_window_get_surface window_ptr
     XP.manageSurface xpsurface
-    drawStatus xpsurface (fromIntegral w) (fromIntegral h)
+    drawStatus xpsurface (fromIntegral w) (fromIntegral h) (fromIntegral code)
 
 buttonHandler _ input_ptr _ _ state d_ptr = do
-    Status display_ptr window_ptr _ _ _ _ _ <- peek (castPtr d_ptr)
+    Status display_ptr window_ptr _ _ _ _ _ _ <- peek (castPtr d_ptr)
     if state == wlPointerButtonStatePressed
         then c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
         else return ()
 
 touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
-    Status display_ptr window_ptr _ _ _ _ _ <- peek (castPtr d_ptr)
+    Status display_ptr window_ptr _ _ _ _ _ _ <- peek (castPtr d_ptr)
     c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
 
 statusConfigure status_ptr = do
-    Status display_ptr window_ptr widget_ptr w h check_fd _ <- peek status_ptr
+    Status display_ptr window_ptr widget_ptr w h check_fd _ _ <- peek status_ptr
     c_display_watch_fd display_ptr check_fd epollin (#{ptr struct status, check_task} status_ptr)
-    with (ITimerSpec (TimeSpec 5 0) (TimeSpec 5 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
+    with (ITimerSpec (TimeSpec 30 0) (TimeSpec 1 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
     c_widget_set_resize_handler widget_ptr =<< mkResizeHandlerForeign resizeHandler
     c_widget_set_redraw_handler widget_ptr =<< mkRedrawHandlerForeign redrawHandler
     c_widget_set_button_handler widget_ptr =<< mkButtonHandlerForeign buttonHandler
@@ -87,7 +86,7 @@ statusConfigure status_ptr = do
 
 statusCreate display_ptr w h = do
     mallocForeignPtr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
-        FC.addForeignPtrFinalizer status_fp $ peek status_ptr >>= \(Status _ window_ptr widget_ptr _ _ check_fd _) -> do
+        FC.addForeignPtrFinalizer status_fp $ peek status_ptr >>= \(Status _ window_ptr widget_ptr _ _ check_fd _ _) -> do
             c_display_unwatch_fd display_ptr check_fd
             closeFd check_fd
             windowDestroy widget_ptr window_ptr
@@ -95,7 +94,7 @@ statusCreate display_ptr w h = do
         widget_ptr <- c_window_add_widget window_ptr $ castPtr status_ptr
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
         check_task <- Task <$> mkStatusCheckForeign statusCheck
-        poke status_ptr (Status display_ptr window_ptr widget_ptr w h check_fd check_task)
+        poke status_ptr (Status display_ptr window_ptr widget_ptr w h check_fd check_task 0)
         return status_fp
 
 backgroundConfigure _ _ _ window_ptr w h = do
