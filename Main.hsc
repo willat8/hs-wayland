@@ -11,6 +11,7 @@ import qualified Graphics.Rendering.Cairo.Types as XP
 import System.Posix.Types
 import System.Posix.IO
 import Data.Bits.Bitwise
+import Control.Monad.IO.Class (MonadIO)
 
 #include "C/hsmyth.h"
 
@@ -33,6 +34,7 @@ drawSquare w x y isGreen = do
     XP.setLineWidth 10
     XP.stroke
 
+drawStatus :: MonadIO m => XP.Surface -> Double -> Double -> Int -> m ()
 drawStatus xpsurface w h code = XP.renderWith xpsurface $ do
     XP.setOperator XP.OperatorSource
     XP.setSourceRGBA 0 0 0 0
@@ -41,10 +43,10 @@ drawStatus xpsurface w h code = XP.renderWith xpsurface $ do
     let sq_dim = 100
     let init_x = 160
     let y = (h - sq_dim) / 2
-    let statuses = toListLE (code :: Int)
-    drawSquare sq_dim init_x y (statuses !! 0)
-    drawSquare sq_dim ((w - sq_dim) / 2) y (statuses !! 1)
-    drawSquare sq_dim (w - init_x - sq_dim) y (statuses !! 2)
+    let [s1, s2, s3] = toListLE code
+    drawSquare sq_dim init_x y s1
+    drawSquare sq_dim ((w - sq_dim) / 2) y s2
+    drawSquare sq_dim (w - init_x - sq_dim) y s3
 
 statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
