@@ -12,7 +12,7 @@ all: hsmyth
 
 hsmyth: Myth/Internal.hs Myth/Status.hs Main.hs
 	ghc -O2 -o $@ --make $(LDLIBS) Main $(westondeps)
-	strip $@
+	strip -p --strip-unneeded --remove-section=.comment $@
 
 install:
 	install -m755 -o root -g root hsmyth /usr/local/bin/myth
