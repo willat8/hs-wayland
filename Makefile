@@ -11,7 +11,8 @@ all: hsmyth
 	hsc2hs $(CFLAGS) $^
 
 hsmyth: Myth/Internal.hs Myth/Status.hs Main.hs
-	ghc -o $@ --make $(LDLIBS) Main $(westondeps)
+	ghc -O2 -o $@ --make $(LDLIBS) Main $(westondeps)
+	strip $@
 
 install:
 	install -m755 -o root -g root hsmyth /usr/local/bin/myth
