@@ -43,7 +43,7 @@ drawStatus xpsurface w h code = XP.renderWith xpsurface $ do
     let sq_dim = 100
     let init_x = 160
     let y = (h - sq_dim) / 2
-    let [s1, s2, s3] = toListLE code
+    let s1:s2:s3:_ = toListLE code
     drawSquare sq_dim init_x y s1
     drawSquare sq_dim ((w - sq_dim) / 2) y s2
     drawSquare sq_dim (w - init_x - sq_dim) y s3
