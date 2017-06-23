@@ -22,7 +22,7 @@ parseEncoders = withObject "EncoderList" $ \o -> do
 getStatusCode = do
     req <- parseRequest "http://worker1:6544/Dvr/GetEncoderList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")] }
 
-    res <- (getResponseBody <$> httpJSON req) :: IO Value
+    res <- getResponseBody <$> httpJSON req :: IO Value
     
     let Success num = parse parseEncoders res
 
