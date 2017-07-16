@@ -14,7 +14,7 @@ parseStatus = withObject "EncoderList" $ \o -> do
 
 getStatusCode :: IO Int
 getStatusCode = do
-    req <- parseRequest "http://192.168.0.20:6544/Dvr/GetEncoderList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")] }
+    req <- parseRequest "http://angel.home:6544/Dvr/GetEncoderList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")] }
 
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
