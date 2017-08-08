@@ -42,11 +42,15 @@ drawStatus xpsurface w h code = XP.renderWith xpsurface $ do
     XP.setOperator XP.OperatorOver
     let sq_dim = 100
     let init_x = 160
-    let y = (h - sq_dim) / 2
-    let s1:_:s2:_:s3:_ = toListLE code
-    drawSquare sq_dim init_x y s1
-    drawSquare sq_dim ((w - sq_dim) / 2) y s2
-    drawSquare sq_dim (w - init_x - sq_dim) y s3
+    let y1 = (h - 2 * sq_dim) / 3
+    let y2 = h - y1 - sq_dim
+    let s11:s12:s21:s22:s31:s32:_ = toListLE code
+    drawSquare sq_dim init_x y1 s11
+    drawSquare sq_dim init_x y2 s12
+    drawSquare sq_dim ((w - sq_dim) / 2) y1 s21
+    drawSquare sq_dim ((w - sq_dim) / 2) y2 s22
+    drawSquare sq_dim (w - init_x - sq_dim) y1 s31
+    drawSquare sq_dim (w - init_x - sq_dim) y2 s32
 
 statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
