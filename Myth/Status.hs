@@ -9,7 +9,7 @@ import Data.Bits.Bitwise
 import Control.Exception (try)
 import Data.List
 
-parseConnected = withObject "EncoderList" $ \o -> do
+parseConnected = withObject "EncoderList" $ \o ->
     pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Connected")) . (V.toList) >>= return . fmap (== ("true" :: String))
 
 parseActive = withObject "EncoderList" $ \o ->
