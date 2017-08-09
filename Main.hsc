@@ -15,22 +15,23 @@ import Control.Monad.IO.Class (MonadIO)
 
 #include "C/hsmyth.h"
 
-drawSquare w x y isGreen = do
+drawSquare w x y isGreen isHighlighted = do
     let h = w
         aspect = 1
         corner_radius = h / 10
         radius = corner_radius / aspect
         degrees = pi / 180
-    let (c1, c2, c3) = if isGreen then (148, 194, 105) else (239, 41, 41)
+    let (fc1, fc2, fc3) = if isGreen then (148, 194, 105) else (239, 41, 41)
+        (bc1, bc2, bc3) = if isHighlighted then (0, 0, 255) else (fc1, fc2, fc3)
     XP.newPath
     XP.arc (x + w - radius) (y + radius) radius (-90 * degrees) (0 * degrees)
     XP.arc (x + w - radius) (y + h - radius) radius (0 * degrees) (90 * degrees)
     XP.arc (x + radius) (y + h - radius) radius (90 * degrees) (180 * degrees)
     XP.arc (x + radius) (y + radius) radius (180 * degrees) (270 * degrees)
     XP.closePath
-    XP.setSourceRGB (c1 / 256) (c2 / 256) (c3 / 256)
+    XP.setSourceRGB (fc1 / 256) (fc2 / 256) (fc3 / 256)
     XP.fillPreserve
-    XP.setSourceRGBA (c1 / 256) (c2 / 256) (c3 / 256) 0.5
+    XP.setSourceRGBA (bc1 / 256) (bc2 / 256) (bc3 / 256) 0.5
     XP.setLineWidth 10
     XP.stroke
 
@@ -44,13 +45,15 @@ drawStatus xpsurface w h code = XP.renderWith xpsurface $ do
     let init_x = 160
     let y1 = (h - 2 * sq_dim) / 3
     let y2 = h - y1 - sq_dim
-    let s11:s12:s21:s22:s31:s32:_ = toListLE code
-    drawSquare sq_dim init_x y1 s11
-    drawSquare sq_dim init_x y2 s12
-    drawSquare sq_dim ((w - sq_dim) / 2) y1 s21
-    drawSquare sq_dim ((w - sq_dim) / 2) y2 s22
-    drawSquare sq_dim (w - init_x - sq_dim) y1 s31
-    drawSquare sq_dim (w - init_x - sq_dim) y2 s32
+    let (c11:a11:c12:a12:
+         c21:a21:c22:a22:
+         c31:a31:c32:a32:_) = toListLE code
+    drawSquare sq_dim init_x y1 c11 a11
+    drawSquare sq_dim init_x y2 c12 a12
+    drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21
+    drawSquare sq_dim ((w - sq_dim) / 2) y2 c22 a22
+    drawSquare sq_dim (w - init_x - sq_dim) y1 c31 a31
+    drawSquare sq_dim (w - init_x - sq_dim) y2 c32 a32
 
 statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
