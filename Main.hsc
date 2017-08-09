@@ -22,7 +22,7 @@ drawSquare w x y isGreen isHighlighted = do
         radius = corner_radius / aspect
         degrees = pi / 180
     let (fc1, fc2, fc3) = if isGreen then (148, 194, 105) else (239, 41, 41)
-        (bc1, bc2, bc3) = if isHighlighted then (0, 0, 255) else (fc1, fc2, fc3)
+        (bc1, bc2, bc3) = if isHighlighted then (135, 206, 250) else (fc1, fc2, fc3)
     XP.newPath
     XP.arc (x + w - radius) (y + radius) radius (-90 * degrees) (0 * degrees)
     XP.arc (x + w - radius) (y + h - radius) radius (0 * degrees) (90 * degrees)
