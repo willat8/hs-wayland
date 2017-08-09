@@ -10,12 +10,10 @@ import Control.Exception (try)
 import Data.List
 
 parseConnected = withObject "EncoderList" $ \o -> do
-    l <- pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Connected")) . (V.toList)
-    return $ (== ("true" :: String)) <$> l
+    pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Connected")) . (V.toList) >>= return . fmap (== ("true" :: String))
 
 parseActive = withObject "EncoderList" $ \o ->
-    pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "State")) . (V.toList) >>= fmap ((> 0) . read)
-    --return $ (> 0) . read <$> l
+    pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "State")) . (V.toList) >>= return . fmap ((> 0) . read)
 
 getStatusCode :: IO Int
 getStatusCode = do
