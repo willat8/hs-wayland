@@ -15,14 +15,17 @@ import Control.Monad.IO.Class (MonadIO)
 
 #include "C/hsmyth.h"
 
-drawSquare w x y isGreen isHighlighted = do
+drawSquare w x y isGreen isPurple = do
     let h = w
         aspect = 1
         corner_radius = h / 10
         radius = corner_radius / aspect
         degrees = pi / 180
-    let (fc1, fc2, fc3) = if isGreen then (148, 194, 105) else (239, 41, 41)
-        (bc1, bc2, bc3) = if isHighlighted then (135, 206, 250) else (fc1, fc2, fc3)
+        red = (239, 41, 41)
+        green = (148, 194, 105)
+        purple = (152, 107, 194)
+    let (fc1, fc2, fc3) = if isPurple then purple else if isGreen then green else red  -- Fill colour
+        (bc1, bc2, bc3) = if isPurple then green else (fc1, fc2, fc3)                  -- Border colour
     XP.newPath
     XP.arc (x + w - radius) (y + radius) radius (-90 * degrees) (0 * degrees)
     XP.arc (x + w - radius) (y + h - radius) radius (0 * degrees) (90 * degrees)
