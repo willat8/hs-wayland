@@ -12,8 +12,21 @@ import System.Posix.Types
 import System.Posix.IO
 import Data.Bits.Bitwise
 import Control.Monad.IO.Class (MonadIO)
+import Data.Time.Clock
+import Data.Time.LocalTime
+import Data.Time.Format
+import Control.Monad.Trans (liftIO)
+import Control.Applicative
 
 #include "C/hsmyth.h"
+
+drawText win_w win_h s = do
+    XP.setSourceRGBA 1 1 1 0.5
+    XP.selectFontFace "Sans" XP.FontSlantNormal XP.FontWeightNormal
+    XP.setFontSize 150
+    XP.TextExtents xb yb w h _ _ <- XP.textExtents s
+    XP.moveTo ((win_w - w) / 2 - xb) ((win_h - h) / 2 - yb)
+    XP.showText s
 
 drawSquare w x y isGreen isPurple = do
     let h = w
@@ -51,12 +64,16 @@ drawStatus xpsurface w h code = XP.renderWith xpsurface $ do
     let (c11:a11:c12:a12:
          c21:a21:c22:a22:
          c31:a31:c32:a32:_) = toListLE code
-    drawSquare sq_dim init_x y1 c11 a11
-    drawSquare sq_dim init_x y2 c12 a12
-    drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21
-    drawSquare sq_dim ((w - sq_dim) / 2) y2 c22 a22
-    drawSquare sq_dim (w - init_x - sq_dim) y1 c31 a31
-    drawSquare sq_dim (w - init_x - sq_dim) y2 c32 a32
+    --drawSquare sq_dim init_x y1 c11 a11
+    --drawSquare sq_dim init_x y2 c12 a12
+    --drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21
+    --drawSquare sq_dim ((w - sq_dim) / 2) y2 c22 a22
+    --drawSquare sq_dim (w - init_x - sq_dim) y1 c31 a31
+    --drawSquare sq_dim (w - init_x - sq_dim) y2 c32 a32
+    t <- liftIO $ getCurrentTime
+    tz <- liftIO $ getCurrentTimeZone
+    let s = formatTime defaultTimeLocale "%l %M" <$> localTimeOfDay $ utcToLocalTime tz t
+    drawText w h s
 
 statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
