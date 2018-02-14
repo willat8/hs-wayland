@@ -32,9 +32,9 @@
 #include <cairo.h>
 /*#include "shared/config-parser.h"
 #include "shared/zalloc.h"
-#include "shared/platform.h"
+#include "shared/platform.h"*/
 
-struct window;*/
+struct window;
 struct widget;
 /*struct display;*/
 struct input;
@@ -182,11 +182,11 @@ enum cursor_type {
 	CURSOR_BLANK
 };
 
-/*typedef void (*window_key_handler_t)(struct window *window, struct input *input,
+typedef void (*window_key_handler_t)(struct window *window, struct input *input,
 				     uint32_t time, uint32_t key, uint32_t unicode,
 				     enum wl_keyboard_key_state state, void *data);
 
-typedef void (*window_keyboard_focus_handler_t)(struct window *window,
+/*typedef void (*window_keyboard_focus_handler_t)(struct window *window,
 						struct input *device, void *data);
 
 typedef void (*window_data_handler_t)(struct window *window,
@@ -448,11 +448,11 @@ window_set_user_data(struct window *window, void *data);
 void *
 window_get_user_data(struct window *window);
 
-/*void
+void
 window_set_key_handler(struct window *window,
 		       window_key_handler_t handler);
 
-void
+/*void
 window_set_keyboard_focus_handler(struct window *window,
 				  window_keyboard_focus_handler_t handler);
 

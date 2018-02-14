@@ -64,12 +64,19 @@ drawStatus xpsurface w h code = XP.renderWith xpsurface $ do
     let (c11:a11:c12:a12:
          c21:a21:c22:a22:
          c31:a31:c32:a32:_) = toListLE code
-    --drawSquare sq_dim init_x y1 c11 a11
-    --drawSquare sq_dim init_x y2 c12 a12
-    --drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21
-    --drawSquare sq_dim ((w - sq_dim) / 2) y2 c22 a22
-    --drawSquare sq_dim (w - init_x - sq_dim) y1 c31 a31
-    --drawSquare sq_dim (w - init_x - sq_dim) y2 c32 a32
+    drawSquare sq_dim init_x y1 c11 a11
+    drawSquare sq_dim init_x y2 c12 a12
+    drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21
+    drawSquare sq_dim ((w - sq_dim) / 2) y2 c22 a22
+    drawSquare sq_dim (w - init_x - sq_dim) y1 c31 a31
+    drawSquare sq_dim (w - init_x - sq_dim) y2 c32 a32
+
+drawClock :: MonadIO m => XP.Surface -> Double -> Double -> Int -> m ()
+drawClock xpsurface w h code = XP.renderWith xpsurface $ do
+    XP.setOperator XP.OperatorSource
+    XP.setSourceRGBA 0 0 0 0
+    XP.paint
+    XP.setOperator XP.OperatorOver
     t <- liftIO $ getCurrentTime
     tz <- liftIO $ getCurrentTimeZone
     let s = formatTime defaultTimeLocale "%l %M" <$> localTimeOfDay $ utcToLocalTime tz t
@@ -91,7 +98,7 @@ redrawHandler _ d_ptr = do
     Status _ window_ptr _ w h _ _ code <- peek (castPtr d_ptr)
     xpsurface <- XP.mkSurface =<< c_window_get_surface window_ptr
     XP.manageSurface xpsurface
-    drawStatus xpsurface (fromIntegral w) (fromIntegral h) (fromIntegral code)
+    drawClock xpsurface (fromIntegral w) (fromIntegral h) (fromIntegral code)
 
 buttonHandler _ input_ptr _ _ state d_ptr = do
     Status display_ptr window_ptr _ _ _ _ _ _ <- peek (castPtr d_ptr)
@@ -103,6 +110,11 @@ touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
     Status display_ptr window_ptr _ _ _ _ _ _ <- peek (castPtr d_ptr)
     c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
 
+keyHandler window_ptr _ _ _ _ _ _ = do
+    status_ptr <- castPtr <$> c_window_get_user_data window_ptr
+    Status _ _ widget_ptr _ _ _ _ _ <- peek status_ptr
+    c_widget_schedule_redraw widget_ptr
+
 statusConfigure status_ptr = do
     Status display_ptr window_ptr widget_ptr w h check_fd _ _ <- peek status_ptr
     c_display_watch_fd display_ptr check_fd epollin (#{ptr struct status, check_task} status_ptr)
@@ -111,6 +123,7 @@ statusConfigure status_ptr = do
     c_widget_set_redraw_handler widget_ptr =<< mkRedrawHandlerForeign redrawHandler
     c_widget_set_button_handler widget_ptr =<< mkButtonHandlerForeign buttonHandler
     c_widget_set_touch_down_handler widget_ptr =<< mkTouchDownHandlerForeign touchDownHandler
+    c_window_set_key_handler window_ptr =<< mkKeyHandlerForeign keyHandler
     c_window_schedule_resize window_ptr w h
 
 statusCreate display_ptr w h = do
@@ -124,6 +137,7 @@ statusCreate display_ptr w h = do
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
         check_task <- Task <$> mkStatusCheckForeign statusCheck
         poke status_ptr (Status display_ptr window_ptr widget_ptr w h check_fd check_task 0)
+        c_window_set_user_data window_ptr $ castPtr status_ptr
         return status_fp
 
 backgroundConfigure _ _ _ window_ptr w h = do

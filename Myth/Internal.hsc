@@ -23,6 +23,10 @@ newtype WlPointerButtonState = WlPointerButtonState { unWlPointerButtonState :: 
     deriving (Eq,Show)
 #enum WlPointerButtonState, WlPointerButtonState, WL_POINTER_BUTTON_STATE_PRESSED
 
+newtype WlKeyboardKeyState = WlKeyboardKeyState { unWlKeyboardKeyState :: CInt }
+    deriving (Eq,Show)
+#enum WlKeyboardKeyState, WlKeyboardKeyState
+
 newtype TimerFdOption = TimerFdOption { unTimerFdOption :: CInt }
     deriving (Eq,Show)
 #enum TimerFdOption, TimerFdOption, CLOCK_MONOTONIC, TFD_CLOEXEC
@@ -261,6 +265,9 @@ foreign import ccall unsafe "window_move"
 foreign import ccall unsafe "window_schedule_resize"
     c_window_schedule_resize :: Ptr Window -> Int32 -> Int32 -> IO ()
 
+foreign import ccall unsafe "window_set_key_handler"
+    c_window_set_key_handler :: Ptr Window -> FunPtr (Ptr Window -> Ptr Input -> Word32 -> Word32 -> Word32 -> WlKeyboardKeyState -> Ptr () -> IO ()) -> IO ()
+
 foreign import ccall unsafe "window_set_user_data"
     c_window_set_user_data :: Ptr Window -> Ptr () -> IO ()
 
@@ -347,6 +354,10 @@ foreign import ccall unsafe "wrapper"
 foreign import ccall unsafe "wrapper"
     mkTouchDownHandlerForeign ::            (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> Int32 -> Float -> Float -> Ptr () -> IO ()) ->
                                  IO (FunPtr (Ptr Widget -> Ptr Input -> Word32 -> Word32 -> Int32 -> Float -> Float -> Ptr () -> IO ()))
+
+foreign import ccall unsafe "wrapper"
+    mkKeyHandlerForeign ::            (Ptr Window -> Ptr Input -> Word32 -> Word32 -> Word32 -> WlKeyboardKeyState -> Ptr () -> IO ()) ->
+                           IO (FunPtr (Ptr Window -> Ptr Input -> Word32 -> Word32 -> Word32 -> WlKeyboardKeyState -> Ptr () -> IO ()))
 
 foreign import ccall unsafe "wrapper"
     mkSurfaceConfigureForeign ::            (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->
