@@ -25,7 +25,7 @@ newtype WlPointerButtonState = WlPointerButtonState { unWlPointerButtonState :: 
 
 newtype WlKeyboardKeyState = WlKeyboardKeyState { unWlKeyboardKeyState :: CInt }
     deriving (Eq,Show)
-#enum WlKeyboardKeyState, WlKeyboardKeyState
+#enum WlKeyboardKeyState, WlKeyboardKeyState, WL_KEYBOARD_KEY_STATE_PRESSED
 
 newtype TimerFdOption = TimerFdOption { unTimerFdOption :: CInt }
     deriving (Eq,Show)
