@@ -110,9 +110,8 @@ touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
     Status display_ptr window_ptr _ _ _ _ _ _ <- peek (castPtr d_ptr)
     c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
 
-keyHandler window_ptr _ _ _ _ state _ = do
-    status_ptr <- castPtr <$> c_window_get_user_data window_ptr
-    Status _ _ widget_ptr _ _ _ _ _ <- peek status_ptr
+keyHandler _ _ _ _ _ state d_ptr = do
+    Status _ _ widget_ptr _ _ _ _ _ <- peek (castPtr d_ptr)
     if state == wlKeyboardKeyStatePressed
         then c_widget_schedule_redraw widget_ptr
         else return ()
