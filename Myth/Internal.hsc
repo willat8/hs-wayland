@@ -178,7 +178,7 @@ data Status = Status { statusDisplay   :: Ptr Display
                      , statusCheckFd   :: Fd
                      , statusCheckTask :: Task
                      , statusCode      :: CInt
-                     , statusShowClock :: CInt
+                     , statusShowClock :: Bool
                      }
 instance Storable Status where
     sizeOf _    = #{size struct status}
