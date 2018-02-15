@@ -84,41 +84,46 @@ drawClock xpsurface w h code = XP.renderWith xpsurface $ do
 
 statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
-    Status _ _ widget_ptr _ _ check_fd _ _ <- peek status_ptr
+    Status _ _ widget_ptr _ _ check_fd _ _ _ <- peek status_ptr
     fdRead check_fd #{size uint64_t}
     code <- getStatusCode
     peek status_ptr >>= \status -> poke status_ptr status { statusCode = fromIntegral code }
     c_widget_schedule_redraw widget_ptr
 
 resizeHandler _ _ _ d_ptr = do
-    Status _ _ widget_ptr w h _ _ _ <- peek (castPtr d_ptr)
+    Status _ _ widget_ptr w h _ _ _ _ <- peek (castPtr d_ptr)
     c_widget_set_size widget_ptr w h
 
 redrawHandler _ d_ptr = do
-    Status _ window_ptr _ w h _ _ code <- peek (castPtr d_ptr)
+    let status_ptr = castPtr d_ptr
+    Status _ window_ptr _ w h _ _ code show_clock <- peek status_ptr
     xpsurface <- XP.mkSurface =<< c_window_get_surface window_ptr
     XP.manageSurface xpsurface
-    drawClock xpsurface (fromIntegral w) (fromIntegral h) (fromIntegral code)
+    case show_clock of 0 -> do drawStatus xpsurface (fromIntegral w) (fromIntegral h) (fromIntegral code)
+                               peek status_ptr >>= \status -> poke status_ptr status { statusShowClock = 1 }
+                       1 -> drawClock xpsurface (fromIntegral w) (fromIntegral h) (fromIntegral code)
 
 buttonHandler _ input_ptr _ _ state d_ptr = do
-    Status display_ptr window_ptr _ _ _ _ _ _ <- peek (castPtr d_ptr)
+    Status display_ptr window_ptr _ _ _ _ _ _ _ <- peek (castPtr d_ptr)
     if state == wlPointerButtonStatePressed
         then c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
         else return ()
 
 touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
-    Status display_ptr window_ptr _ _ _ _ _ _ <- peek (castPtr d_ptr)
+    Status display_ptr window_ptr _ _ _ _ _ _ _ <- peek (castPtr d_ptr)
     c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
 
 keyHandler _ _ _ _ _ state d_ptr = do
-    Status _ _ widget_ptr _ _ check_fd _ _ <- peek (castPtr d_ptr)
+    let status_ptr = castPtr d_ptr
+    Status _ _ widget_ptr _ _ check_fd _ _ _ <- peek status_ptr
     if state == wlKeyboardKeyStatePressed
         then do with (ITimerSpec (TimeSpec 30 0) (TimeSpec 30 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
+                peek status_ptr >>= \status -> poke status_ptr status { statusShowClock = 0 }
                 c_widget_schedule_redraw widget_ptr
         else return ()
 
 statusConfigure status_ptr = do
-    Status display_ptr window_ptr widget_ptr w h check_fd _ _ <- peek status_ptr
+    Status display_ptr window_ptr widget_ptr w h check_fd _ _ _ <- peek status_ptr
     c_display_watch_fd display_ptr check_fd epollin (#{ptr struct status, check_task} status_ptr)
     with (ITimerSpec (TimeSpec 30 0) (TimeSpec 1 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
     c_widget_set_resize_handler widget_ptr =<< mkResizeHandlerForeign resizeHandler
@@ -130,7 +135,7 @@ statusConfigure status_ptr = do
 
 statusCreate display_ptr w h = do
     mallocForeignPtr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
-        FC.addForeignPtrFinalizer status_fp $ peek status_ptr >>= \(Status _ window_ptr widget_ptr _ _ check_fd _ _) -> do
+        FC.addForeignPtrFinalizer status_fp $ peek status_ptr >>= \(Status _ window_ptr widget_ptr _ _ check_fd _ _ _) -> do
             c_display_unwatch_fd display_ptr check_fd
             closeFd check_fd
             windowDestroy widget_ptr window_ptr
@@ -138,7 +143,7 @@ statusCreate display_ptr w h = do
         widget_ptr <- c_window_add_widget window_ptr $ castPtr status_ptr
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
         check_task <- Task <$> mkStatusCheckForeign statusCheck
-        poke status_ptr (Status display_ptr window_ptr widget_ptr w h check_fd check_task 0)
+        poke status_ptr (Status display_ptr window_ptr widget_ptr w h check_fd check_task 0 1)
         c_window_set_user_data window_ptr $ castPtr status_ptr
         return status_fp
 

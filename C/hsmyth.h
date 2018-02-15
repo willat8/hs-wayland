@@ -38,5 +38,6 @@ struct status {
     int check_fd;
     struct task check_task;
     int code;
+    int show_clock;
 };
 
