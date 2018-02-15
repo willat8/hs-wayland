@@ -111,9 +111,10 @@ touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
     c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
 
 keyHandler _ _ _ _ _ state d_ptr = do
-    Status _ _ widget_ptr _ _ _ _ _ <- peek (castPtr d_ptr)
+    Status _ _ widget_ptr _ _ check_fd _ _ <- peek (castPtr d_ptr)
     if state == wlKeyboardKeyStatePressed
-        then c_widget_schedule_redraw widget_ptr
+        then do with (ITimerSpec (TimeSpec 30 0) (TimeSpec 30 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
+                c_widget_schedule_redraw widget_ptr
         else return ()
 
 statusConfigure status_ptr = do
