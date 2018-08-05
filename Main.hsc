@@ -87,7 +87,8 @@ statusCheck t_ptr _ = do
     Status _ _ widget_ptr _ _ check_fd _ _ _ <- peek status_ptr
     fdRead check_fd #{size uint64_t}
     code <- getStatusCode
-    peek status_ptr >>= \status -> poke status_ptr status { statusCode = fromIntegral code }
+    -- Show the clock when the code is unchanged from the last status check
+    peek status_ptr >>= \status -> poke status_ptr status { statusCode = fromIntegral code, statusShowClock = (fromIntegral code == fromIntegral (statusCode status)) }
     c_widget_schedule_redraw widget_ptr
 
 resizeHandler _ _ _ d_ptr = do
