@@ -51,8 +51,8 @@ drawSquare w x y isGreen isPurple = do
     XP.setLineWidth 10
     XP.stroke
 
-drawStatus :: MonadIO m => XP.Surface -> Double -> Double -> m ()
-drawStatus xpsurface w h = XP.renderWith xpsurface $ do
+drawStatus :: MonadIO m => XP.Surface -> Double -> Double -> [Bool] -> m ()
+drawStatus xpsurface w h status = XP.renderWith xpsurface $ do
     XP.setOperator XP.OperatorSource
     XP.setSourceRGBA 0 0 0 0
     XP.paint
@@ -63,9 +63,7 @@ drawStatus xpsurface w h = XP.renderWith xpsurface $ do
     let y2 = h - y1 - sq_dim
     let (c11:a11:c12:a12:
          c21:a21:c22:a22:
-         c31:a31:c32:a32:_) = [True,True,True,True,
-                               False,False,False,False,
-                               True,True,True,True]
+         c31:a31:c32:a32:_) = status
     drawSquare sq_dim init_x y1 c11 a11
     drawSquare sq_dim init_x y2 c12 a12
     drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21
@@ -99,10 +97,10 @@ resizeHandler _ _ _ d_ptr = do
 
 redrawHandler _ d_ptr = do
     let status_ptr = castPtr d_ptr
-    Status _ window_ptr _ w h _ _ show_clock _ <- peek status_ptr
+    Status _ window_ptr _ w h _ _ show_clock status <- peek status_ptr
     xpsurface <- XP.mkSurface =<< c_window_get_surface window_ptr
     XP.manageSurface xpsurface
-    case show_clock of False -> do drawStatus xpsurface (fromIntegral w) (fromIntegral h)
+    case show_clock of False -> do drawStatus xpsurface (fromIntegral w) (fromIntegral h) status
                                    peek status_ptr >>= \status -> poke status_ptr status { statusShowClock = True }
                        True -> drawClock xpsurface (fromIntegral w) (fromIntegral h)
 
