@@ -178,7 +178,7 @@ data Status = Status { statusDisplay     :: Ptr Display
                      , statusCheckFd     :: Fd
                      , statusCheckTask   :: Task
                      , statusShowClock   :: Bool
-                     , statusNumEncoders :: Int32
+                     , statusNumEncoders :: CSize
                      , statusEncoders    :: [Bool]
                      }
 instance Storable Status where
