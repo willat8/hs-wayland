@@ -52,7 +52,7 @@ drawSquare w x y isGreen isPurple = do
     XP.stroke
 
 drawStatus :: MonadIO m => XP.Surface -> Double -> Double -> [Bool] -> m ()
-drawStatus xpsurface w h status = XP.renderWith xpsurface $ do
+drawStatus xpsurface w h encoders = XP.renderWith xpsurface $ do
     XP.setOperator XP.OperatorSource
     XP.setSourceRGBA 0 0 0 0
     XP.paint
@@ -63,7 +63,7 @@ drawStatus xpsurface w h status = XP.renderWith xpsurface $ do
     let y2 = h - y1 - sq_dim
     let (c11:a11:c12:a12:
          c21:a21:c22:a22:
-         c31:a31:c32:a32:_) = status
+         c31:a31:c32:a32:_) = encoders
     drawSquare sq_dim init_x y1 c11 a11
     drawSquare sq_dim init_x y2 c12 a12
     drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21
@@ -86,9 +86,9 @@ statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
     Status _ _ widget_ptr _ _ check_fd _ _ _ <- peek status_ptr
     fdRead check_fd #{size uint64_t}
-    s <- getStatus
-    -- Show the clock when the code is unchanged from the last status check
-    peek status_ptr >>= \status -> poke status_ptr status { statusCode = s, statusShowClock = (s == statusCode status) }
+    encoders <- getEncodersStatus
+    -- Show the clock when the encoders are unchanged from the last status check
+    peek status_ptr >>= \status -> poke status_ptr status { statusEncoders = encoders, statusShowClock = (encoders == statusEncoders status) }
     c_widget_schedule_redraw widget_ptr
 
 resizeHandler _ _ _ d_ptr = do
@@ -97,10 +97,10 @@ resizeHandler _ _ _ d_ptr = do
 
 redrawHandler _ d_ptr = do
     let status_ptr = castPtr d_ptr
-    Status _ window_ptr _ w h _ _ show_clock status <- peek status_ptr
+    Status _ window_ptr _ w h _ _ show_clock encoders <- peek status_ptr
     xpsurface <- XP.mkSurface =<< c_window_get_surface window_ptr
     XP.manageSurface xpsurface
-    case show_clock of False -> do drawStatus xpsurface (fromIntegral w) (fromIntegral h) status
+    case show_clock of False -> do drawStatus xpsurface (fromIntegral w) (fromIntegral h) encoders
                                    peek status_ptr >>= \status -> poke status_ptr status { statusShowClock = True }
                        True -> drawClock xpsurface (fromIntegral w) (fromIntegral h)
 
