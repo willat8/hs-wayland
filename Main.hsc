@@ -10,7 +10,6 @@ import qualified Graphics.Rendering.Cairo as XP
 import qualified Graphics.Rendering.Cairo.Types as XP
 import System.Posix.Types
 import System.Posix.IO
-import Data.Bits.Bitwise
 import Control.Monad.IO.Class (MonadIO)
 import Data.Time.Clock
 import Data.Time.LocalTime
