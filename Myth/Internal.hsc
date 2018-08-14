@@ -170,15 +170,16 @@ instance Storable Task where
     poke ptr (Task run_funp) = do
         #{poke struct task, run} ptr run_funp
 
-data Status = Status { statusDisplay   :: Ptr Display
-                     , statusWindow    :: Ptr Window
-                     , statusWidget    :: Ptr Widget
-                     , statusWidth     :: Int32
-                     , statusHeight    :: Int32
-                     , statusCheckFd   :: Fd
-                     , statusCheckTask :: Task
-                     , statusShowClock :: Bool
-                     , statusEncoders  :: [Bool]
+data Status = Status { statusDisplay     :: Ptr Display
+                     , statusWindow      :: Ptr Window
+                     , statusWidget      :: Ptr Widget
+                     , statusWidth       :: Int32
+                     , statusHeight      :: Int32
+                     , statusCheckFd     :: Fd
+                     , statusCheckTask   :: Task
+                     , statusShowClock   :: Bool
+                     , statusNumEncoders :: Int32
+                     , statusEncoders    :: [Bool]
                      }
 instance Storable Status where
     sizeOf _    = #{size struct status}
@@ -192,9 +193,10 @@ instance Storable Status where
         check_fd <- #{peek struct status, check_fd} ptr
         check_task <- #{peek struct status, check_task} ptr
         show_clock <- #{peek struct status, show_clock} ptr
-        encoders <- peekArray 12 $ #{ptr struct status, encoders} ptr
-        return (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock encoders)
-    poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock encoders) = do
+        num_encoders <- #{peek struct status, num_encoders} ptr
+        encoders <- peekArray (fromIntegral num_encoders) $ #{ptr struct status, encoders} ptr
+        return (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock num_encoders encoders)
+    poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock num_encoders encoders) = do
         #{poke struct status, display} ptr display_ptr
         #{poke struct status, window} ptr window_ptr
         #{poke struct status, widget} ptr widget_ptr
@@ -203,6 +205,7 @@ instance Storable Status where
         #{poke struct status, check_fd} ptr check_fd
         #{poke struct status, check_task} ptr check_task
         #{poke struct status, show_clock} ptr show_clock
+        #{poke struct status, num_encoders} ptr num_encoders
         pokeArray (#{ptr struct status, encoders} ptr) encoders
 
 foreign import ccall unsafe "display_bind"

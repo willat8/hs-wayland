@@ -38,6 +38,7 @@ struct status {
     int check_fd;
     struct task check_task;
     int show_clock;
+    int num_encoders;
     int encoders[12];
 };
 
