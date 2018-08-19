@@ -39,6 +39,6 @@ struct status {
     struct task check_task;
     int show_clock;
     size_t num_encoders;
-    int encoders[12];
+    int *encoders;
 };
 

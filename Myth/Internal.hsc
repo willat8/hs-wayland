@@ -194,7 +194,7 @@ instance Storable Status where
         check_task <- #{peek struct status, check_task} ptr
         show_clock <- #{peek struct status, show_clock} ptr
         num_encoders <- #{peek struct status, num_encoders} ptr
-        encoders <- peekArray (fromIntegral num_encoders) $ #{ptr struct status, encoders} ptr
+        encoders <- peekArray (fromIntegral num_encoders) =<< #{peek struct status, encoders} ptr
         return (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock num_encoders encoders)
     poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock num_encoders encoders) = do
         #{poke struct status, display} ptr display_ptr
@@ -206,7 +206,8 @@ instance Storable Status where
         #{poke struct status, check_task} ptr check_task
         #{poke struct status, show_clock} ptr show_clock
         #{poke struct status, num_encoders} ptr num_encoders
-        pokeArray (#{ptr struct status, encoders} ptr) encoders
+        free =<< #{peek struct status, encoders} ptr
+        #{poke struct status, encoders} ptr =<< newArray encoders
 
 foreign import ccall unsafe "display_bind"
     c_display_bind :: Ptr Display -> Word32 -> Ptr WlOutputInterface -> CInt -> IO (Ptr WlOutput)
