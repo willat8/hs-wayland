@@ -33,6 +33,7 @@ struct output {
 struct encoder {
     int is_connected;
     int is_active;
+    char *recording_title;
 };
 
 struct status {

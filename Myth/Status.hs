@@ -14,13 +14,16 @@ parseConnected = withObject "EncoderList" $ \o ->
 parseActive = withObject "EncoderList" $ \o ->
     pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "State")) . (V.toList) >>= return . fmap ((> 0) . read)
 
+parseTitles = withObject "EncoderList" $ \o ->
+    pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Recording")) . (V.toList) >>= return
+
 getEncodersStatus :: IO [Encoder]
 getEncodersStatus = do
     req <- parseRequest "http://angel.home:6544/Dvr/GetEncoderList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 1000000 }
 
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
-    let status = case eres of Right res -> zipWith Encoder connectedEncs activeEncs
+    let status = case eres of Right res -> zipWith3 Encoder connectedEncs activeEncs recordingTitles
                                            where [Success connectedEncs, Success activeEncs] = sequence [parse parseConnected, parse parseActive] $ getResponseBody res
                               _         -> []
 

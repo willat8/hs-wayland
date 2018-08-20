@@ -170,8 +170,9 @@ instance Storable Task where
     poke ptr (Task run_funp) = do
         #{poke struct task, run} ptr run_funp
 
-data Encoder = Encoder { encoderIsConnected :: Bool
-                       , encoderIsActive    :: Bool
+data Encoder = Encoder { encoderIsConnected    :: Bool
+                       , encoderIsActive       :: Bool
+                       , encoderRecordingTitle :: String
                        }
     deriving (Eq)
 instance Storable Encoder where
@@ -180,10 +181,12 @@ instance Storable Encoder where
     peek ptr = do
         is_connected <- #{peek struct encoder, is_connected} ptr
         is_active <- #{peek struct encoder, is_active} ptr
-        return (Encoder is_connected is_active)
-    poke ptr (Encoder is_connected is_active) = do
+        recording_title <- peekCString =<< #{peek struct encoder, recording_title} ptr
+        return (Encoder is_connected is_active recording_title)
+    poke ptr (Encoder is_connected is_active recording_title) = do
         #{poke struct encoder, is_connected} ptr is_connected
         #{poke struct encoder, is_active} ptr is_active
+        #{poke struct encoder, recording_title} ptr =<< newCString recording_title
 
 data Status = Status { statusDisplay     :: Ptr Display
                      , statusWindow      :: Ptr Window
@@ -221,6 +224,7 @@ instance Storable Status where
         #{poke struct status, check_task} ptr check_task
         #{poke struct status, show_clock} ptr show_clock
         #{poke struct status, num_encoders} ptr num_encoders
+        free =<< #{peek struct encoder, recording_title} =<< #{peek struct status, encoders} ptr
         free =<< #{peek struct status, encoders} ptr
         #{poke struct status, encoders} ptr =<< newArray encoders
 
