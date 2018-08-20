@@ -7,7 +7,6 @@ import Network.HTTP.Client
 import Data.Aeson.Types
 import qualified Data.Vector as V
 import Control.Exception (try)
-import Data.List
 
 parseConnected = withObject "EncoderList" $ \o ->
     pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Connected")) . (V.toList) >>= return . fmap (== ("true" :: String))
