@@ -170,6 +170,21 @@ instance Storable Task where
     poke ptr (Task run_funp) = do
         #{poke struct task, run} ptr run_funp
 
+data Encoder = Encoder { encoderIsConnected :: Bool
+                       , encoderIsActive    :: Bool
+                       }
+    deriving (Eq)
+instance Storable Encoder where
+    sizeOf _    = #{size struct encoder}
+    alignment _ = #{alignment struct status}
+    peek ptr = do
+        is_connected <- #{peek struct encoder, is_connected} ptr
+        is_active <- #{peek struct encoder, is_active} ptr
+        return (Encoder is_connected is_active)
+    poke ptr (Encoder is_connected is_active) = do
+        #{poke struct encoder, is_connected} ptr is_connected
+        #{poke struct encoder, is_active} ptr is_active
+
 data Status = Status { statusDisplay     :: Ptr Display
                      , statusWindow      :: Ptr Window
                      , statusWidget      :: Ptr Widget
@@ -179,7 +194,7 @@ data Status = Status { statusDisplay     :: Ptr Display
                      , statusCheckTask   :: Task
                      , statusShowClock   :: Bool
                      , statusNumEncoders :: CSize
-                     , statusEncoders    :: [Bool]
+                     , statusEncoders    :: [Encoder]
                      }
 instance Storable Status where
     sizeOf _    = #{size struct status}

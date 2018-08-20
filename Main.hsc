@@ -50,7 +50,7 @@ drawSquare w x y isGreen isPurple = do
     XP.setLineWidth 10
     XP.stroke
 
-drawStatus :: MonadIO m => XP.Surface -> Double -> Double -> [Bool] -> m ()
+drawStatus :: MonadIO m => XP.Surface -> Double -> Double -> [Encoder] -> m ()
 drawStatus xpsurface w h encoders = XP.renderWith xpsurface $ do
     XP.setOperator XP.OperatorSource
     XP.setSourceRGBA 0 0 0 0
@@ -60,9 +60,9 @@ drawStatus xpsurface w h encoders = XP.renderWith xpsurface $ do
     let init_x = 160
     let y1 = (h - 2 * sq_dim) / 3
     let y2 = h - y1 - sq_dim
-    let (c11:a11:c12:a12:
-         c21:a21:c22:a22:
-         c31:a31:c32:a32:_) = encoders
+    let ((Encoder c11 a11):(Encoder c12 a12):
+         (Encoder c21 a21):(Encoder c22 a22):
+         (Encoder c31 a31):(Encoder c32 a32):_) = encoders
     drawSquare sq_dim init_x y1 c11 a11
     drawSquare sq_dim init_x y2 c12 a12
     drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21

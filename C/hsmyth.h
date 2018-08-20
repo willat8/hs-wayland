@@ -30,6 +30,11 @@ struct output {
     struct background *background;
 };
 
+struct encoder {
+    int is_connected;
+    int is_active;
+};
+
 struct status {
     struct display *display;
     struct window *window;
@@ -39,6 +44,6 @@ struct status {
     struct task check_task;
     int show_clock;
     size_t num_encoders;
-    int *encoders;
+    struct encoder *encoders;
 };
 
