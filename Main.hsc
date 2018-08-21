@@ -60,9 +60,9 @@ drawStatus xpsurface w h encoders = XP.renderWith xpsurface $ do
     let init_x = 160
     let y1 = (h - 2 * sq_dim) / 3
     let y2 = h - y1 - sq_dim
-    let ((Encoder c11 a11):(Encoder c12 a12):
-         (Encoder c21 a21):(Encoder c22 a22):
-         (Encoder c31 a31):(Encoder c32 a32):_) = encoders
+    let ((Encoder c11 a11 _):(Encoder c12 a12 _):
+         (Encoder c21 a21 _):(Encoder c22 a22 _):
+         (Encoder c31 a31 _):(Encoder c32 a32 _):_) = encoders
     drawSquare sq_dim init_x y1 c11 a11
     drawSquare sq_dim init_x y2 c12 a12
     drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21

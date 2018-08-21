@@ -14,8 +14,8 @@ parseConnected = withObject "EncoderList" $ \o ->
 parseActive = withObject "EncoderList" $ \o ->
     pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "State")) . (V.toList) >>= return . fmap ((> 0) . read)
 
-parseTitles = withObject "EncoderList" $ \o ->
-    pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Recording")) . (V.toList) >>= return
+--parseTitles = withObject "EncoderList" $ \o ->
+--    pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Recording")) . (V.toList) >>= return
 
 getEncodersStatus :: IO [Encoder]
 getEncodersStatus = do
@@ -25,6 +25,7 @@ getEncodersStatus = do
 
     let status = case eres of Right res -> zipWith3 Encoder connectedEncs activeEncs recordingTitles
                                            where [Success connectedEncs, Success activeEncs] = sequence [parse parseConnected, parse parseActive] $ getResponseBody res
+                                                 recordingTitles = ["Simpsons", "Neighbours", "Survivor", "The Bachelor", "The Amazing Race", ""]
                               _         -> []
 
     return status
