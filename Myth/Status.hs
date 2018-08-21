@@ -19,7 +19,7 @@ parseTitles = withObject "EncoderList" $ \o ->
 
 getEncodersStatus :: IO [Encoder]
 getEncodersStatus = do
-    req <- parseRequest "http://angel.home:6544/Dvr/GetEncoderList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 1000000 }
+    req <- parseRequest "http://angel:6544/Dvr/GetEncoderList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 1000000 }
 
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
