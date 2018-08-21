@@ -223,9 +223,9 @@ instance Storable Status where
         #{poke struct status, check_fd} ptr check_fd
         #{poke struct status, check_task} ptr check_task
         #{poke struct status, show_clock} ptr show_clock
-        #{poke struct status, num_encoders} ptr num_encoders
-        free =<< #{peek struct encoder, recording_title} =<< #{peek struct status, encoders} ptr
+        mapM_ free =<< mapM #{peek struct encoder, recording_title} =<< id =<< peekArray <$> #{peek struct status, num_encoders} ptr <*> #{peek struct status, encoders} ptr
         free =<< #{peek struct status, encoders} ptr
+        #{poke struct status, num_encoders} ptr num_encoders
         #{poke struct status, encoders} ptr =<< newArray encoders
 
 foreign import ccall unsafe "display_bind"
