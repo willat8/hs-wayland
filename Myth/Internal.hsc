@@ -1,7 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
 
 module Myth.Internal where
-import Control.Monad
 import Foreign
 import Foreign.Ptr
 import Foreign.C.String
@@ -224,11 +223,8 @@ instance Storable Status where
         #{poke struct status, check_fd} ptr check_fd
         #{poke struct status, check_task} ptr check_task
         #{poke struct status, show_clock} ptr show_clock
-        p <- #{peek struct status, encoders} ptr :: IO (Ptr Encoder)
-        n <- #{peek struct status, num_encoders} ptr
-        --mapM_ free =<< mapM #{peek struct encoder, recording_title} =<< ((flip advancePtr) <$> [0..n-1]
-        (#{peek struct status, encoders} ptr :: IO (Ptr Encoder)) >>= return . take n . iterate (flip advancePtr 1) >>= mapM free
-        free p
+        mapM_ free =<< mapM #{peek struct encoder, recording_title} =<< take <$> #{peek struct status, num_encoders} ptr <*> (iterate (flip advancePtr 1) <$> #{peek struct status, encoders} ptr :: IO [Ptr Encoder])
+        free =<< #{peek struct status, encoders} ptr
         #{poke struct status, num_encoders} ptr num_encoders
         #{poke struct status, encoders} ptr =<< newArray encoders
 
