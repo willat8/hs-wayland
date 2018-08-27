@@ -14,8 +14,8 @@ parseConnected = withObject "EncoderList" $ \o ->
 parseActive = withObject "EncoderList" $ \o ->
     pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "State")) . (V.toList) >>= return . fmap ((> 0) . read)
 
---parseTitles = withObject "EncoderList" $ \o ->
---    pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Recording")) . (V.toList) >>= return
+parseTitles = withObject "EncoderList" $ \o ->
+    pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Recording")) . (V.toList) >>= mapM (.: "Title")
 
 getEncodersStatus :: IO [Encoder]
 getEncodersStatus = do
@@ -24,8 +24,10 @@ getEncodersStatus = do
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
     let status = case eres of Right res -> zipWith3 Encoder connectedEncs activeEncs recordingTitles
-                                           where [Success connectedEncs, Success activeEncs] = sequence [parse parseConnected, parse parseActive] $ getResponseBody res
-                                                 recordingTitles = ["Simpsons", "Neighbours", "Survivor", "The Bachelor", "The Amazing Race", ""]
+                                           where body = getResponseBody res
+                                                 Success connectedEncs    = parse parseConnected body
+                                                 Success activeEncs       = parse parseActive body
+                                                 Success recordingTitles  = parse parseTitles body
                               _         -> []
 
     return status
