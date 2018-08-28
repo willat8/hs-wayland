@@ -19,12 +19,20 @@ import Control.Applicative
 
 #include "C/hsmyth.h"
 
-drawText win_w win_h s = do
+drawBigText win_w win_h s = do
     XP.setSourceRGBA 1 1 1 0.5
-    XP.selectFontFace "Sans" XP.FontSlantNormal XP.FontWeightNormal
+    XP.selectFontFace "monospace" XP.FontSlantNormal XP.FontWeightNormal
     XP.setFontSize 150
     XP.TextExtents xb yb w h _ _ <- XP.textExtents s
     XP.moveTo ((win_w - w) / 2 - xb) ((win_h - h) / 2 - yb)
+    XP.showText s
+
+drawLittleText win_w win_h s = do
+    XP.setSourceRGBA 1 1 1 0.3
+    XP.selectFontFace "sans-serif" XP.FontSlantItalic XP.FontWeightNormal
+    XP.setFontSize 15
+    XP.TextExtents xb yb w h _ _ <- XP.textExtents s
+    XP.moveTo ((win_w - w) / 2 - xb) ((win_h - h) / 1.2 - yb)
     XP.showText s
 
 drawSquare w x y isGreen isPurple = do
@@ -70,8 +78,8 @@ drawStatus xpsurface w h encoders = XP.renderWith xpsurface $ do
     drawSquare sq_dim (w - init_x - sq_dim) y1 c31 a31
     drawSquare sq_dim (w - init_x - sq_dim) y2 c32 a32
 
-drawClock :: MonadIO m => XP.Surface -> Double -> Double -> m ()
-drawClock xpsurface w h = XP.renderWith xpsurface $ do
+drawClock :: MonadIO m => XP.Surface -> Double -> Double -> [Encoder] -> m ()
+drawClock xpsurface w h encoders = XP.renderWith xpsurface $ do
     XP.setOperator XP.OperatorSource
     XP.setSourceRGBA 0 0 0 0
     XP.paint
@@ -79,7 +87,8 @@ drawClock xpsurface w h = XP.renderWith xpsurface $ do
     t <- liftIO $ getCurrentTime
     tz <- liftIO $ getCurrentTimeZone
     let s = formatTime defaultTimeLocale "%l %M" <$> localTimeOfDay $ utcToLocalTime tz t
-    drawText w h s
+    drawBigText w h s
+    drawLittleText w h "Currently playing"
 
 statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
@@ -101,7 +110,7 @@ redrawHandler _ d_ptr = do
     XP.manageSurface xpsurface
     case show_clock of False -> do drawStatus xpsurface (fromIntegral w) (fromIntegral h) encoders
                                    peek status_ptr >>= \status -> poke status_ptr status { statusShowClock = True }
-                       True -> drawClock xpsurface (fromIntegral w) (fromIntegral h)
+                       True -> drawClock xpsurface (fromIntegral w) (fromIntegral h) encoders
 
 buttonHandler _ input_ptr _ _ state d_ptr = do
     Status display_ptr window_ptr _ _ _ _ _ _ _ _ <- peek (castPtr d_ptr)
