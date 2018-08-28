@@ -10,6 +10,7 @@ import qualified Graphics.Rendering.Cairo as XP
 import qualified Graphics.Rendering.Cairo.Types as XP
 import System.Posix.Types
 import System.Posix.IO
+import Control.Monad (zipWithM_)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Time.Clock
 import Data.Time.LocalTime
@@ -27,13 +28,12 @@ drawBigText win_w win_h s = do
     XP.moveTo ((win_w - w) / 2 - xb) ((win_h - h) / 2 - yb)
     XP.showText s
 
-drawLittleText win_w win_h s = do
+drawLittleText win_w win_h ss = do
     XP.setSourceRGBA 1 1 1 0.3
     XP.selectFontFace "sans-serif" XP.FontSlantItalic XP.FontWeightNormal
     XP.setFontSize 15
-    XP.TextExtents xb yb w h _ _ <- XP.textExtents s
-    XP.moveTo ((win_w - w) / 2 - xb) ((win_h - h) / 1.2 - yb)
-    XP.showText s
+    ys <- mapM (fmap (\(XP.TextExtents _ yb _ h _ _) -> (win_h - h) / 2 - yb) <$> XP.textExtents) ss
+    zipWithM_ (\y s -> XP.moveTo (win_w / 5) y >> XP.showText s) ys ss
 
 drawSquare w x y isGreen isPurple = do
     let h = w
@@ -88,7 +88,7 @@ drawClock xpsurface w h encoders = XP.renderWith xpsurface $ do
     tz <- liftIO $ getCurrentTimeZone
     let s = formatTime defaultTimeLocale "%l %M" <$> localTimeOfDay $ utcToLocalTime tz t
     drawBigText w h s
-    drawLittleText w h "Currently playing"
+    drawLittleText w h ["Currently watching", "Also recording"]
 
 statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
