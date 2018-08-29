@@ -32,7 +32,7 @@ drawLittleText win_w win_h ss = do
     XP.setSourceRGBA 1 1 1 0.3
     XP.selectFontFace "sans-serif" XP.FontSlantItalic XP.FontWeightNormal
     XP.setFontSize 15
-    ys <- mapM (fmap (\(XP.TextExtents _ yb _ h _ _) -> (win_h - h) / 2 - yb) <$> XP.textExtents) ss
+    ys <- zipWith (\i (XP.TextExtents _ yb _ h _ _) -> (win_h - h) / 1.6 - yb + (h - yb) * i) [0..] <$> mapM XP.textExtents ss
     zipWithM_ (\y s -> XP.moveTo (win_w / 5) y >> XP.showText s) ys ss
 
 drawSquare w x y isGreen isPurple = do
