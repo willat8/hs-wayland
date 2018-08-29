@@ -29,11 +29,16 @@ drawBigText win_w win_h s = do
     XP.showText s
 
 drawLittleText win_w win_h ss = do
-    XP.setSourceRGBA 1 1 1 0.3
     XP.selectFontFace "sans-serif" XP.FontSlantItalic XP.FontWeightNormal
     XP.setFontSize 15
     ys <- zipWith (\i (XP.TextExtents _ yb _ h _ _) -> win_h - (1 + i) * (h + yb + 5)) [0..] <$> mapM XP.textExtents (reverse ss)
-    zipWithM_ (\y s -> XP.moveTo (win_w / 5) y >> XP.showText s) ys (reverse ss)
+    zipWithM_ (\y s -> XP.setSourceRGBA 1 0.2 0.2 0.6
+                    >> XP.arc (win_w / 5 - 20) y 10 0 (fromIntegral 2 * pi)
+                    >> XP.fill
+                    >> XP.setSourceRGBA 1 1 1 0.3
+                    >> XP.moveTo (win_w / 5) y
+                    >> XP.showText s
+              ) ys (reverse ss)
 
 drawSquare w x y isGreen isPurple = do
     let h = w
