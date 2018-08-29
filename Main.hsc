@@ -30,7 +30,7 @@ drawBigText win_w win_h s = do
 
 drawLittleText win_w win_h ss = do
     let lines = reverse . filter (not . null) $ ss
-    XP.selectFontFace "sans-serif" XP.FontSlantItalic XP.FontWeightNormal
+    XP.selectFontFace "sans-serif" XP.FontSlantItalic XP.FontWeightBold
     XP.setFontSize 30
     ys <- zipWith (\i (XP.TextExtents _ yb _ h _ _) -> win_h -  i * (h - yb)) [1..] <$> mapM XP.textExtents lines
     zipWithM_ (\y s -> XP.setSourceRGBA 1 0.2 0.2 0.6
