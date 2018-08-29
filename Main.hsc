@@ -88,7 +88,7 @@ drawClock xpsurface w h encoders = XP.renderWith xpsurface $ do
     tz <- liftIO $ getCurrentTimeZone
     let s = formatTime defaultTimeLocale "%l %M" <$> localTimeOfDay $ utcToLocalTime tz t
     drawBigText w h s
-    drawLittleText w h ["Currently watching", "Also recording"]
+    drawLittleText w h (encoderRecordingTitle <$> encoders)
 
 statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
