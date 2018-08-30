@@ -1,100 +1,14 @@
 module Main where
 import Myth.Internal
 import Myth.Status
+import Myth.Render
 import Foreign
-import Foreign.Ptr
 import Foreign.C.String
-import Foreign.C.Types
 import qualified Foreign.Concurrent as FC
-import qualified Graphics.Rendering.Cairo as XP
 import qualified Graphics.Rendering.Cairo.Types as XP
-import System.Posix.Types
 import System.Posix.IO
-import Control.Monad (zipWithM_)
-import Control.Monad.IO.Class (MonadIO)
-import Data.Time.Clock
-import Data.Time.LocalTime
-import Data.Time.Format
-import Control.Monad.Trans (liftIO)
-import Control.Applicative
 
 #include "C/hsmyth.h"
-
-drawBigText win_w win_h s = do
-    XP.setSourceRGBA 1 1 1 0.5
-    XP.selectFontFace "monospace" XP.FontSlantNormal XP.FontWeightNormal
-    XP.setFontSize 150
-    XP.TextExtents xb yb w h _ _ <- XP.textExtents s
-    XP.moveTo ((win_w - w) / 2 - xb) ((win_h - h) / 2 - yb)
-    XP.showText s
-
-drawLittleText win_w win_h ss = do
-    let lines = reverse . filter (not . null) $ ss
-    XP.selectFontFace "sans-serif" XP.FontSlantItalic XP.FontWeightBold
-    XP.setFontSize 30
-    ys <- zipWith (\i (XP.TextExtents _ yb _ h _ _) -> win_h -  i * (h - yb)) [1..] <$> mapM XP.textExtents lines
-    zipWithM_ (\y s -> XP.setSourceRGBA 1 0.2 0.2 0.6
-                    >> XP.arc (win_w / 5 - 20) (y - 10) 10 0 (fromIntegral 2 * pi)
-                    >> XP.fill
-                    >> XP.setSourceRGBA 1 1 1 0.3
-                    >> XP.moveTo (win_w / 5) y
-                    >> XP.showText s
-              ) ys lines
-
-drawSquare w x y isGreen isPurple = do
-    let h = w
-        aspect = 1
-        corner_radius = h / 10
-        radius = corner_radius / aspect
-        degrees = pi / 180
-        red = (239, 41, 41)
-        green = (148, 194, 105)
-        purple = (152, 107, 194)
-    let (fc1, fc2, fc3) = if isPurple then purple else if isGreen then green else red  -- Fill colour
-        (bc1, bc2, bc3) = if isPurple then green else (fc1, fc2, fc3)                  -- Border colour
-    XP.newPath
-    XP.arc (x + w - radius) (y + radius) radius (-90 * degrees) (0 * degrees)
-    XP.arc (x + w - radius) (y + h - radius) radius (0 * degrees) (90 * degrees)
-    XP.arc (x + radius) (y + h - radius) radius (90 * degrees) (180 * degrees)
-    XP.arc (x + radius) (y + radius) radius (180 * degrees) (270 * degrees)
-    XP.closePath
-    XP.setSourceRGB (fc1 / 256) (fc2 / 256) (fc3 / 256)
-    XP.fillPreserve
-    XP.setSourceRGBA (bc1 / 256) (bc2 / 256) (bc3 / 256) 0.5
-    XP.setLineWidth 10
-    XP.stroke
-
-drawStatus :: MonadIO m => XP.Surface -> Double -> Double -> [Encoder] -> m ()
-drawStatus xpsurface w h encoders = XP.renderWith xpsurface $ do
-    XP.setOperator XP.OperatorSource
-    XP.setSourceRGBA 0 0 0 0
-    XP.paint
-    XP.setOperator XP.OperatorOver
-    let sq_dim = 100
-    let init_x = 160
-    let y1 = (h - 2 * sq_dim) / 3
-    let y2 = h - y1 - sq_dim
-    let ((Encoder c11 a11 _):(Encoder c12 a12 _):
-         (Encoder c21 a21 _):(Encoder c22 a22 _):
-         (Encoder c31 a31 _):(Encoder c32 a32 _):_) = encoders
-    drawSquare sq_dim init_x y1 c11 a11
-    drawSquare sq_dim init_x y2 c12 a12
-    drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21
-    drawSquare sq_dim ((w - sq_dim) / 2) y2 c22 a22
-    drawSquare sq_dim (w - init_x - sq_dim) y1 c31 a31
-    drawSquare sq_dim (w - init_x - sq_dim) y2 c32 a32
-
-drawClock :: MonadIO m => XP.Surface -> Double -> Double -> [Encoder] -> m ()
-drawClock xpsurface w h encoders = XP.renderWith xpsurface $ do
-    XP.setOperator XP.OperatorSource
-    XP.setSourceRGBA 0 0 0 0
-    XP.paint
-    XP.setOperator XP.OperatorOver
-    t <- liftIO $ getCurrentTime
-    tz <- liftIO $ getCurrentTimeZone
-    let s = formatTime defaultTimeLocale "%l %M" <$> localTimeOfDay $ utcToLocalTime tz t
-    drawBigText w h s
-    drawLittleText w h (encoderRecordingTitle <$> encoders)
 
 statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}

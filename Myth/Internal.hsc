@@ -2,7 +2,6 @@
 
 module Myth.Internal where
 import Foreign
-import Foreign.Ptr
 import Foreign.C.String
 import Foreign.C.Types
 import qualified Graphics.Rendering.Cairo.Types as XP

@@ -10,7 +10,7 @@ all: hsmyth
 %.hs: %.hsc
 	hsc2hs $(CFLAGS) $^
 
-hsmyth: Myth/Internal.hs Myth/Status.hs Main.hs
+hsmyth: Myth/Internal.hs Myth/Status.hs Myth/Render.hs Main.hs
 	ghc -O2 -o $@ --make $(LDLIBS) Main $(westondeps)
 	strip -p --strip-unneeded --remove-section=.comment $@
 
