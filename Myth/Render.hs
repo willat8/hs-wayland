@@ -1,4 +1,4 @@
-module Myth.Render where
+module Myth.Render (drawStatus, drawClock) where
 import qualified Myth.Internal as M
 import Graphics.Rendering.Cairo
 import Control.Monad (zipWithM_)

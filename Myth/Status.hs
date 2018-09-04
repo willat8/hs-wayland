@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Myth.Status where
+module Myth.Status (getEncodersStatus) where
 import Myth.Internal
 import Network.HTTP.Simple
 import Network.HTTP.Client
