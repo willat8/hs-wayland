@@ -39,8 +39,8 @@ drawClock xpsurface w h encoders = renderWith xpsurface $ do
     t <- liftIO $ getCurrentTime
     tz <- liftIO $ getCurrentTimeZone
     let s = formatTime defaultTimeLocale "%l %M" <$> localTimeOfDay $ utcToLocalTime tz t
-    showTime w h s
-    showRecordingTitles w h (M.encoderRecordingTitle <$> encoders)
+    drawTime w h s
+    drawRecordingTitles w h (M.encoderRecordingTitle <$> encoders)
 
 drawSquare w x y isGreen isPurple = do
     let h = w
@@ -65,7 +65,7 @@ drawSquare w x y isGreen isPurple = do
     setLineWidth 10
     stroke
 
-showTime win_w win_h t = do
+drawTime win_w win_h t = do
     setSourceRGBA 1 1 1 0.5
     selectFontFace "monospace" FontSlantNormal FontWeightNormal
     setFontSize 150
@@ -73,7 +73,7 @@ showTime win_w win_h t = do
     moveTo ((win_w - w) / 2 - xb) ((win_h - h) / 2 - yb)
     showText t
 
-showRecordingTitles win_w win_h rts = do
+drawRecordingTitles win_w win_h rts = do
     let rts' = reverse . filter (not . null) $ rts
     selectFontFace "sans-serif" FontSlantItalic FontWeightBold
     setFontSize 30
