@@ -2,7 +2,6 @@ module Myth.Render (drawStatus, drawClock) where
 import qualified Myth.Internal as M
 import Graphics.Rendering.Cairo
 import Control.Monad (zipWithM_)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Time.Clock
 import Data.Time.LocalTime
 import Data.Time.Format
@@ -51,7 +50,6 @@ drawSquare w x y isGreen isPurple = do
     setLineWidth 10
     stroke
 
-drawStatus :: MonadIO m => Surface -> Double -> Double -> [M.Encoder] -> m ()
 drawStatus xpsurface w h encoders = renderWith xpsurface $ do
     setOperator OperatorSource
     setSourceRGBA 0 0 0 0
@@ -71,7 +69,6 @@ drawStatus xpsurface w h encoders = renderWith xpsurface $ do
     drawSquare sq_dim (w - init_x - sq_dim) y1 c31 a31
     drawSquare sq_dim (w - init_x - sq_dim) y2 c32 a32
 
-drawClock :: MonadIO m => Surface -> Double -> Double -> [M.Encoder] -> m ()
 drawClock xpsurface w h encoders = renderWith xpsurface $ do
     setOperator OperatorSource
     setSourceRGBA 0 0 0 0

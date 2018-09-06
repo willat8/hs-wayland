@@ -17,7 +17,6 @@ parseActive = withObject "EncoderList" $ \o ->
 parseTitles = withObject "EncoderList" $ \o ->
     pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Recording")) . (V.toList) >>= mapM (.: "Title")
 
-getEncodersStatus :: IO [Encoder]
 getEncodersStatus = do
     req <- parseRequest "http://angel:6544/Dvr/GetEncoderList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 1000000 }
 
