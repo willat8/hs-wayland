@@ -6,26 +6,41 @@ import Data.Time.Clock
 import Data.Time.LocalTime
 import Data.Time.Format
 
-drawBigText win_w win_h s = do
-    setSourceRGBA 1 1 1 0.5
-    selectFontFace "monospace" FontSlantNormal FontWeightNormal
-    setFontSize 150
-    TextExtents xb yb w h _ _ <- textExtents s
-    moveTo ((win_w - w) / 2 - xb) ((win_h - h) / 2 - yb)
-    showText s
+-- | Draws a grid of coloured squares to a Cairo surface.
+-- Requires the screen dimensions to position the squares correctly.
+-- A green square represents a connected encoder and a purple square an encoder which is actively recording.
+drawStatus xpsurface w h encoders = renderWith xpsurface $ do
+    setOperator OperatorSource
+    setSourceRGBA 0 0 0 0
+    paint
+    setOperator OperatorOver
+    let sq_dim = 100
+    let init_x = 160
+    let y1 = (h - 2 * sq_dim) / 3
+    let y2 = h - y1 - sq_dim
+    let ((M.Encoder c11 a11 _):(M.Encoder c12 a12 _):
+         (M.Encoder c21 a21 _):(M.Encoder c22 a22 _):
+         (M.Encoder c31 a31 _):(M.Encoder c32 a32 _):_) = encoders
+    drawSquare sq_dim init_x y1 c11 a11
+    drawSquare sq_dim init_x y2 c12 a12
+    drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21
+    drawSquare sq_dim ((w - sq_dim) / 2) y2 c22 a22
+    drawSquare sq_dim (w - init_x - sq_dim) y1 c31 a31
+    drawSquare sq_dim (w - init_x - sq_dim) y2 c32 a32
 
-drawLittleText win_w win_h ss = do
-    let lines = reverse . filter (not . null) $ ss
-    selectFontFace "sans-serif" FontSlantItalic FontWeightBold
-    setFontSize 30
-    ys <- zipWith (\i (TextExtents _ yb _ h _ _) -> win_h -  i * (h - yb)) [1..] <$> mapM textExtents lines
-    zipWithM_ (\y s -> setSourceRGBA 1 0.2 0.2 0.6
-                    >> arc (win_w / 5 - 20) (y - 10) 10 0 (fromIntegral 2 * pi)
-                    >> fill
-                    >> setSourceRGBA 1 1 1 0.3
-                    >> moveTo (win_w / 5) y
-                    >> showText s
-              ) ys lines
+-- | Draws a vertically and horizontally-centered 12h time to a Cairo surface.
+-- Requires the screen dimensions to position the text correctly.
+-- Beneath is drawn a list of titles currently being recorded.
+drawClock xpsurface w h encoders = renderWith xpsurface $ do
+    setOperator OperatorSource
+    setSourceRGBA 0 0 0 0
+    paint
+    setOperator OperatorOver
+    t <- liftIO $ getCurrentTime
+    tz <- liftIO $ getCurrentTimeZone
+    let s = formatTime defaultTimeLocale "%l %M" <$> localTimeOfDay $ utcToLocalTime tz t
+    showTime w h s
+    showRecordingTitles w h (M.encoderRecordingTitle <$> encoders)
 
 drawSquare w x y isGreen isPurple = do
     let h = w
@@ -50,33 +65,24 @@ drawSquare w x y isGreen isPurple = do
     setLineWidth 10
     stroke
 
-drawStatus xpsurface w h encoders = renderWith xpsurface $ do
-    setOperator OperatorSource
-    setSourceRGBA 0 0 0 0
-    paint
-    setOperator OperatorOver
-    let sq_dim = 100
-    let init_x = 160
-    let y1 = (h - 2 * sq_dim) / 3
-    let y2 = h - y1 - sq_dim
-    let ((M.Encoder c11 a11 _):(M.Encoder c12 a12 _):
-         (M.Encoder c21 a21 _):(M.Encoder c22 a22 _):
-         (M.Encoder c31 a31 _):(M.Encoder c32 a32 _):_) = encoders
-    drawSquare sq_dim init_x y1 c11 a11
-    drawSquare sq_dim init_x y2 c12 a12
-    drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21
-    drawSquare sq_dim ((w - sq_dim) / 2) y2 c22 a22
-    drawSquare sq_dim (w - init_x - sq_dim) y1 c31 a31
-    drawSquare sq_dim (w - init_x - sq_dim) y2 c32 a32
+showTime win_w win_h t = do
+    setSourceRGBA 1 1 1 0.5
+    selectFontFace "monospace" FontSlantNormal FontWeightNormal
+    setFontSize 150
+    TextExtents xb yb w h _ _ <- textExtents t
+    moveTo ((win_w - w) / 2 - xb) ((win_h - h) / 2 - yb)
+    showText t
 
-drawClock xpsurface w h encoders = renderWith xpsurface $ do
-    setOperator OperatorSource
-    setSourceRGBA 0 0 0 0
-    paint
-    setOperator OperatorOver
-    t <- liftIO $ getCurrentTime
-    tz <- liftIO $ getCurrentTimeZone
-    let s = formatTime defaultTimeLocale "%l %M" <$> localTimeOfDay $ utcToLocalTime tz t
-    drawBigText w h s
-    drawLittleText w h (M.encoderRecordingTitle <$> encoders)
+showRecordingTitles win_w win_h rts = do
+    let rts' = reverse . filter (not . null) $ rts
+    selectFontFace "sans-serif" FontSlantItalic FontWeightBold
+    setFontSize 30
+    ys <- zipWith (\i (TextExtents _ yb _ h _ _) -> win_h -  i * (h - yb)) [1..] <$> mapM textExtents rts'
+    zipWithM_ (\y rt -> setSourceRGBA 1 0.2 0.2 0.6
+                     >> arc (win_w / 5 - 20) (y - 10) 10 0 (fromIntegral 2 * pi)
+                     >> fill
+                     >> setSourceRGBA 1 1 1 0.3
+                     >> moveTo (win_w / 5) y
+                     >> showText rt
+              ) ys rts'
 
