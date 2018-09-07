@@ -6,7 +6,7 @@ all: hsmyth
 .PHONY: all
 
 %.hs: %.hsc
-	hsc2hs -C -iquoteinclude -I/usr/include/cairo $^
+	hsc2hs -C -iquoteinclude -I /usr/include/cairo $^
 
 hsmyth: Myth/Internal.hs Myth/Status.hs Myth/Render.hs Main.hs
 	ghc -O2 -o $@ --make $(LDLIBS) Main $(westondeps)
