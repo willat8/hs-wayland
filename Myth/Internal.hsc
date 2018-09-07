@@ -10,9 +10,9 @@ import System.Posix.Types
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
 #include <wayland-client.h>
-#include "../include/window.h"
-#include "../include/weston-desktop-shell-client-protocol.h"
-#include "../include/hsmyth.h"
+#include "window.h"
+#include "weston-desktop-shell-client-protocol.h"
+#include "hsmyth.h"
 
 newtype CursorType = CursorType { unCursorType :: CInt }
     deriving (Eq,Show)

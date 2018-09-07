@@ -8,7 +8,7 @@ import qualified Foreign.Concurrent as FC
 import qualified Graphics.Rendering.Cairo.Types as XP
 import System.Posix.IO
 
-#include "include/hsmyth.h"
+#include "hsmyth.h"
 
 statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
