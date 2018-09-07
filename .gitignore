@@ -1,10 +1,10 @@
 *
-!C
-!C/*.h
+!.gitignore
 !Makefile
+!include
+!include/*.h
 !*.hsc
 !Myth
-!.gitignore
 !Myth/Status.hs
 !Myth/Render.hs
 
