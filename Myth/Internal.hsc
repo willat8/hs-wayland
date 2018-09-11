@@ -5,6 +5,7 @@ import Foreign
 import Foreign.C.String
 import Foreign.C.Types
 import qualified Graphics.Rendering.Cairo.Types as XP
+import qualified Data.ByteString.Internal as B
 import System.Posix.Types
 
 #include <sys/epoll.h>
@@ -169,9 +170,10 @@ instance Storable Task where
     poke ptr (Task run_funp) = do
         #{poke struct task, run} ptr run_funp
 
-data Encoder = Encoder { encoderIsConnected    :: Bool
-                       , encoderIsActive       :: Bool
-                       , encoderRecordingTitle :: String
+data Encoder = Encoder { encoderIsConnected     :: Bool
+                       , encoderIsActive        :: Bool
+                       , encoderRecordingTitle  :: String
+                       , encoderChannelIcon     :: B.ByteString
                        }
     deriving (Eq)
 instance Storable Encoder where
@@ -181,11 +183,16 @@ instance Storable Encoder where
         is_connected <- #{peek struct encoder, is_connected} ptr
         is_active <- #{peek struct encoder, is_active} ptr
         recording_title <- peekCString =<< #{peek struct encoder, recording_title} ptr
-        return (Encoder is_connected is_active recording_title)
-    poke ptr (Encoder is_connected is_active recording_title) = do
+        channel_icon_size <- #{peek struct encoder, channel_icon_size} ptr
+        channel_icon <- ($ channel_icon_size) <$> ($ 0) <$> B.fromForeignPtr <$> newForeignPtr_ (#{peek struct encoder, channel_icon} ptr)
+        return (Encoder is_connected is_active recording_title channel_icon)
+    poke ptr (Encoder is_connected is_active recording_title channel_icon) = do
         #{poke struct encoder, is_connected} ptr is_connected
         #{poke struct encoder, is_active} ptr is_active
         #{poke struct encoder, recording_title} ptr =<< newCString recording_title
+        let (fp, _, s) = B.toForeignPtr channel_icon
+        #{poke struct encoder, channel_icon_size} ptr s
+        #{poke struct encoder, channel_icon} ptr fp
 
 data Status = Status { statusDisplay     :: Ptr Display
                      , statusWindow      :: Ptr Window
@@ -227,6 +234,9 @@ instance Storable Status where
         #{poke struct status, num_encoders} ptr num_encoders
         #{poke struct status, encoders} ptr =<< newArray encoders
 
+foreign import ccall safe "cairo_image_surface_create_from_png_stream"
+    c_cairo_image_surface_create_from_png_stream :: FunPtr (Ptr () -> Ptr Word8 -> CSize -> IO CInt) -> Ptr () -> IO (Ptr XP.Surface)
+
 foreign import ccall unsafe "display_bind"
     c_display_bind :: Ptr Display -> Word32 -> Ptr WlOutputInterface -> CInt -> IO (Ptr WlOutput)
 
@@ -256,6 +266,12 @@ foreign import ccall unsafe "display_unwatch_fd"
 
 foreign import ccall unsafe "display_watch_fd"
     c_display_watch_fd :: Ptr Display -> Fd -> EpollOperation -> Ptr Task -> IO ()
+
+foreign import ccall safe "fmemopen"
+    c_fmemopen :: Ptr Word8 -> CSize -> CString -> IO (Ptr ())
+
+foreign import ccall safe "fread"
+    c_fread :: Ptr Word8 -> CSize -> CSize -> Ptr () -> IO (CSize)
 
 foreign import ccall unsafe "timerfd_create"
     c_timerfd_create :: TimerFdOption -> TimerFdOption -> IO (Fd)
@@ -411,6 +427,10 @@ foreign import ccall unsafe "wrapper"
 foreign import ccall unsafe "wrapper"
     mkGlobalHandlerRemoveForeign ::            (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()) ->
                                     IO (FunPtr (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()))
+
+foreign import ccall safe "wrapper"
+    mkReadFromPngStreamForeign ::            (Ptr () -> Ptr Word8 -> CSize -> IO CInt) ->
+                                  IO (FunPtr (Ptr () -> Ptr Word8 -> CSize -> IO CInt))
 
 foreign import ccall safe "dynamic"
     mkSurfaceConfigure :: FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->

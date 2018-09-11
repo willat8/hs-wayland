@@ -22,7 +22,10 @@ getEncodersStatus = do
 
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
-    let status = case eres of Right res -> zipWith3 Encoder connectedEncs activeEncs recordingTitles
+    bs <- getResponseBody <$> httpBS "http://127.0.0.1/abc.png"
+    let (channelIconPng, _, l) = B.toForeignPtr bs
+
+    let status = case eres of Right res -> zipWith3 Encoder connectedEncs activeEncs recordingTitles [channelIconPng, "", "", "", "", ""]
                                            where body = getResponseBody res
                                                  Success connectedEncs    = parse parseConnected body
                                                  Success activeEncs       = parse parseActive body

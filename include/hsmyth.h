@@ -34,6 +34,8 @@ struct encoder {
     int is_connected;
     int is_active;
     char *recording_title;
+    size_t channel_icon_size;
+    unsigned char *channel_icon;
 };
 
 struct status {
