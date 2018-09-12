@@ -170,10 +170,10 @@ instance Storable Task where
     poke ptr (Task run_funp) = do
         #{poke struct task, run} ptr run_funp
 
-data Encoder = Encoder { encoderIsConnected     :: Bool
-                       , encoderIsActive        :: Bool
-                       , encoderRecordingTitle  :: String
-                       , encoderChannelIcon     :: B.ByteString
+data Encoder = Encoder { encoderIsConnected    :: Bool
+                       , encoderIsActive       :: Bool
+                       , encoderRecordingTitle :: String
+                       , encoderChannelIcon    :: B.ByteString
                        }
     deriving (Eq)
 instance Storable Encoder where
