@@ -201,7 +201,6 @@ data Status = Status { statusDisplay     :: Ptr Display
                      , statusCheckFd     :: Fd
                      , statusCheckTask   :: Task
                      , statusShowClock   :: Bool
-                     , statusNumEncoders :: CSize
                      , statusEncoders    :: [Encoder]
                      }
 instance Storable Status where
@@ -216,10 +215,9 @@ instance Storable Status where
         check_fd <- #{peek struct status, check_fd} ptr
         check_task <- #{peek struct status, check_task} ptr
         show_clock <- #{peek struct status, show_clock} ptr
-        num_encoders <- #{peek struct status, num_encoders} ptr -- Investigate whether this can be dropped from the Status object
-        encoders <- peekArray (fromIntegral num_encoders) =<< #{peek struct status, encoders} ptr
-        return (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock num_encoders encoders)
-    poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock num_encoders encoders) = do
+        encoders <- id =<< peekArray <$> #{peek struct status, num_encoders} ptr <*> #{peek struct status, encoders} ptr
+        return (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock encoders)
+    poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock encoders) = do
         #{poke struct status, display} ptr display_ptr
         #{poke struct status, window} ptr window_ptr
         #{poke struct status, widget} ptr widget_ptr
@@ -230,7 +228,7 @@ instance Storable Status where
         #{poke struct status, show_clock} ptr show_clock
         mapM_ free =<< mapM #{peek struct encoder, recording_title} =<< take <$> #{peek struct status, num_encoders} ptr <*> (iterate (flip advancePtr 1) <$> #{peek struct status, encoders} ptr :: IO [Ptr Encoder])
         free =<< #{peek struct status, encoders} ptr
-        #{poke struct status, num_encoders} ptr num_encoders
+        #{poke struct status, num_encoders} ptr (length encoders)
         #{poke struct status, encoders} ptr =<< newArray encoders
 
 foreign import ccall safe "cairo_image_surface_create_from_png_stream"
