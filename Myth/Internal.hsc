@@ -1,11 +1,11 @@
 {-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
 
 module Myth.Internal where
+import qualified Data.ByteString.Internal as B
 import Foreign
 import Foreign.C.String
 import Foreign.C.Types
 import qualified Graphics.Rendering.Cairo.Types as XP
-import qualified Data.ByteString.Internal as B
 import System.Posix.Types
 
 #include <sys/epoll.h>
@@ -189,9 +189,9 @@ instance Storable Encoder where
         #{poke struct encoder, is_connected} ptr is_connected
         #{poke struct encoder, is_active} ptr is_active
         #{poke struct encoder, recording_title} ptr =<< newCString recording_title
-        let (fp, _, s) = B.toForeignPtr channel_icon
-        #{poke struct encoder, channel_icon_size} ptr s
-        withForeignPtr fp $ \p -> #{poke struct encoder, channel_icon} ptr p
+        let (ci_fp, _, ci_size) = B.toForeignPtr channel_icon
+        #{poke struct encoder, channel_icon_size} ptr ci_size
+        withForeignPtr ci_fp $ \ci_ptr -> #{poke struct encoder, channel_icon} ptr ci_ptr -- Change this to clean up the old one first
 
 data Status = Status { statusDisplay     :: Ptr Display
                      , statusWindow      :: Ptr Window
@@ -216,7 +216,7 @@ instance Storable Status where
         check_fd <- #{peek struct status, check_fd} ptr
         check_task <- #{peek struct status, check_task} ptr
         show_clock <- #{peek struct status, show_clock} ptr
-        num_encoders <- #{peek struct status, num_encoders} ptr
+        num_encoders <- #{peek struct status, num_encoders} ptr -- Investigate whether this can be dropped from the Status object
         encoders <- peekArray (fromIntegral num_encoders) =<< #{peek struct status, encoders} ptr
         return (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock num_encoders encoders)
     poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock num_encoders encoders) = do
