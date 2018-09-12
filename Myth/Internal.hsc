@@ -184,7 +184,7 @@ instance Storable Encoder where
         is_active <- #{peek struct encoder, is_active} ptr
         recording_title <- peekCString =<< #{peek struct encoder, recording_title} ptr
         channel_icon_size <- #{peek struct encoder, channel_icon_size} ptr
-        channel_icon <- ($ channel_icon_size) <$> ($ 0) <$> B.fromForeignPtr <$> newForeignPtr_ (#{peek struct encoder, channel_icon} ptr)
+        channel_icon <- (\b -> B.fromForeignPtr b 0 channel_icon_size) <$> (newForeignPtr_ =<< #{peek struct encoder, channel_icon} ptr)
         return (Encoder is_connected is_active recording_title channel_icon)
     poke ptr (Encoder is_connected is_active recording_title channel_icon) = do
         #{poke struct encoder, is_connected} ptr is_connected
@@ -192,7 +192,7 @@ instance Storable Encoder where
         #{poke struct encoder, recording_title} ptr =<< newCString recording_title
         let (fp, _, s) = B.toForeignPtr channel_icon
         #{poke struct encoder, channel_icon_size} ptr s
-        #{poke struct encoder, channel_icon} ptr fp
+        withForeignPtr fp $ \p -> #{poke struct encoder, channel_icon} ptr p
 
 data Status = Status { statusDisplay     :: Ptr Display
                      , statusWindow      :: Ptr Window

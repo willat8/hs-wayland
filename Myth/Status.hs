@@ -7,6 +7,8 @@ import Network.HTTP.Client
 import Data.Aeson.Types
 import qualified Data.Vector as V
 import Control.Exception (try)
+import qualified Data.ByteString.Lazy as B
+import Data.List (zipWith4)
 
 parseConnected = withObject "EncoderList" $ \o ->
     pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Connected")) . (V.toList) >>= return . fmap (== ("true" :: String))
@@ -22,10 +24,9 @@ getEncodersStatus = do
 
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
-    bs <- getResponseBody <$> httpBS "http://127.0.0.1/abc.png"
-    let (channelIconPng, _, l) = B.toForeignPtr bs
+    bs <- B.toStrict . getResponseBody <$> httpLBS "http://127.0.0.1/abc.png"
 
-    let status = case eres of Right res -> zipWith3 Encoder connectedEncs activeEncs recordingTitles [channelIconPng, "", "", "", "", ""]
+    let status = case eres of Right res -> zipWith4 Encoder connectedEncs activeEncs recordingTitles ["", "", "", "", "", bs]
                                            where body = getResponseBody res
                                                  Success connectedEncs    = parse parseConnected body
                                                  Success activeEncs       = parse parseActive body
