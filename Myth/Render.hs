@@ -1,19 +1,19 @@
 module Myth.Render (drawStatus, drawClock) where
 import qualified Myth.Internal as M
-import Graphics.Rendering.Cairo
 import Control.Monad (zipWithM_)
-import Data.Time.Clock
-import Data.Time.LocalTime
-import Data.Time.Format
 import qualified Data.ByteString.Internal as B
-import Foreign.ForeignPtr
+import Data.Time.Clock
+import Data.Time.Format
+import Data.Time.LocalTime
 import Foreign.C.String
+import Foreign.ForeignPtr
+import Graphics.Rendering.Cairo
 import qualified Graphics.Rendering.Cairo.Types as XP
 
 -- | Draws a grid of coloured squares to a Cairo surface.
 -- Requires the screen dimensions to position the squares correctly.
 -- A green square represents a connected encoder and a purple square an encoder which is actively recording.
-drawStatus xpsurface w h encoders = renderWith xpsurface $ do
+drawStatus surface w h encoders = renderWith surface $ do
     setOperator OperatorSource
     setSourceRGBA 0 0 0 0
     paint
@@ -24,19 +24,19 @@ drawStatus xpsurface w h encoders = renderWith xpsurface $ do
     let y2 = h - y1 - sq_dim
     let ((M.Encoder c11 a11 _ _):(M.Encoder c12 a12 _ _):
          (M.Encoder c21 a21 _ _):(M.Encoder c22 a22 _ _):
-         (M.Encoder c31 a31 _ _):(M.Encoder c32 a32 _ bs):_) = encoders
+         (M.Encoder c31 a31 _ _):(M.Encoder c32 a32 _ ci32):_) = encoders
     drawSquare sq_dim init_x y1 c11 a11
     drawSquare sq_dim init_x y2 c12 a12
     drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21
     drawSquare sq_dim ((w - sq_dim) / 2) y2 c22 a22
     drawSquare sq_dim (w - init_x - sq_dim) y1 c31 a31
     drawSquare sq_dim (w - init_x - sq_dim) y2 c32 a32
-    drawChannelIcon 0 0 bs
+    drawChannelIcon 0 0 ci32
 
 -- | Draws a vertically and horizontally-centered 12h time to a Cairo surface.
 -- Requires the screen dimensions to position the text correctly.
 -- Beneath is drawn a list of titles currently being recorded.
-drawClock xpsurface w h encoders = renderWith xpsurface $ do
+drawClock surface w h encoders = renderWith surface $ do
     setOperator OperatorSource
     setSourceRGBA 0 0 0 0
     paint
@@ -50,8 +50,8 @@ drawClock xpsurface w h encoders = renderWith xpsurface $ do
 drawSquare w x y isGreen isPurple = do
     let h = w
         aspect = 1
-        corner_radius = h / 10
-        radius = corner_radius / aspect
+        cornerRadius = h / 10
+        radius = cornerRadius / aspect
         degrees = pi / 180
         red = (239, 41, 41)
         green = (148, 194, 105)
@@ -91,18 +91,21 @@ drawRecordingTitles win_w win_h rts = do
                      >> showText rt
               ) ys rts'
 
-drawChannelIcon x y bs = do
-    let (p, _, l) = B.toForeignPtr bs
-    source <- liftIO $ withForeignPtr p $ \bs_ptr -> withCString "rb" $ \cs -> do
-        file <- M.c_fmemopen bs_ptr (fromIntegral l) cs
-        fp <- M.mkReadFromPngStreamForeign readFromPngStream
-        surface <- XP.mkSurface =<< M.c_cairo_image_surface_create_from_png_stream fp file
-        XP.manageSurface surface
-        return surface
-    setSourceSurface source x y
+drawChannelIcon x y ci = do
+    channelIconSurface <- pngSurfaceFromByteString ci
+    setSourceSurface channelIconSurface x y
     paint
 
-readFromPngStream f b l = do
-  M.c_fread b 1 l f
+pngSurfaceFromByteString bs = do
+    let (bs_fp, _, bs_size) = B.toForeignPtr bs
+    liftIO $ withForeignPtr bs_fp $ \bs_ptr -> withCString "rb" $ \mode_cs -> do
+        file_ptr <- M.c_fmemopen bs_ptr (fromIntegral bs_size) mode_cs -- Have to make sure to close and free this file
+        read_funp <- M.mkReadFromPngStreamForeign readFromPngStream -- Have to make sure to free this funp
+        surface <- XP.mkSurface =<< M.c_cairo_image_surface_create_from_png_stream read_funp file_ptr
+        XP.manageSurface surface
+        return surface
+
+readFromPngStream file_ptr buffer_ptr count = do
+  M.c_fread buffer_ptr 1 count file_ptr
   return 0 -- Replace this with proper enumeration value CAIRO_STATUS_SUCCESS or CAIRO_STATUS_READ_ERROR
 
