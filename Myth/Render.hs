@@ -97,7 +97,7 @@ drawChannelIcon x y ci = do
     paint
 
 pngSurfaceFromByteString bs = do
-    let (bs_fp, _, bs_size) = B.toForeignPtr bs
+    let (bs_fp, _, bs_size) = B.toForeignPtr bs -- Does this fp have to be explicitly freed?
     liftIO $ withForeignPtr bs_fp $ \bs_ptr -> withCString "rb" $ \mode_cs -> do
         file_ptr <- M.c_fmemopen bs_ptr (fromIntegral bs_size) mode_cs -- Have to make sure to close and free this file
         read_funp <- M.mkReadFromPngStreamForeign readFromPngStream -- Have to make sure to free this funp
