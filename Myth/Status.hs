@@ -7,6 +7,7 @@ import Network.HTTP.Client
 import Data.Aeson.Types
 import qualified Data.Vector as V
 import Control.Exception (try)
+import qualified Data.ByteString as S
 import qualified Data.ByteString.Lazy as B
 import Data.List (zipWith4)
 
@@ -27,7 +28,7 @@ getEncodersStatus = do
     bsreq <- parseRequest "http://angel:6544/Guide/GetChannelIcon?ChanId=1002" >>= \req -> return req { responseTimeout = Just 1000000 }
     bs <- B.toStrict . getResponseBody <$> httpLBS bsreq
 
-    let status = case eres of Right res -> zipWith4 Encoder connectedEncs activeEncs recordingTitles ["", "", "", "", "", bs]
+    let status = case eres of Right res -> zipWith4 Encoder connectedEncs activeEncs recordingTitles [S.empty, S.empty, S.empty, S.empty, S.empty, bs]
                                            where body = getResponseBody res
                                                  Success connectedEncs    = parse parseConnected body
                                                  Success activeEncs       = parse parseActive body
