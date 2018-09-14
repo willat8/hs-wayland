@@ -175,8 +175,7 @@ data Encoder = Encoder { encoderIsConnected    :: Bool
                        , encoderRecordingTitle :: String
                        , encoderChannelIcon    :: B.ByteString
                        }
-instance Eq Encoder where
-    (Encoder _ _ rt1 _) == (Encoder _ _ rt2 _) = rt1 == rt2 -- Equality based on recording title
+    deriving (Eq)
 instance Storable Encoder where
     sizeOf _    = #{size struct encoder}
     alignment _ = #{alignment struct status}
