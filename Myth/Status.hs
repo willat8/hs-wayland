@@ -26,9 +26,11 @@ getEncodersStatus = do
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
     bsreq <- parseRequest "http://angel:6544/Guide/GetChannelIcon?ChanId=1002" >>= \req -> return req { responseTimeout = Just 1000000 }
-    bs <- B.toStrict . getResponseBody <$> httpLBS bsreq
+    ebs <- try $ B.toStrict . getResponseBody <$> httpLBS bsreq :: IO (Either HttpException S.ByteString)
+    let icon = case ebs of Right bs -> bs
+                           _        -> S.empty
 
-    let status = case eres of Right res -> zipWith4 Encoder connectedEncs activeEncs recordingTitles [S.empty, S.empty, S.empty, S.empty, S.empty, bs]
+    let status = case eres of Right res -> zipWith4 Encoder connectedEncs activeEncs recordingTitles [S.empty, S.empty, S.empty, S.empty, S.empty, icon]
                                            where body = getResponseBody res
                                                  Success connectedEncs    = parse parseConnected body
                                                  Success activeEncs       = parse parseActive body
