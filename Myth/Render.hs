@@ -7,6 +7,7 @@ import Data.Time.Format
 import Data.Time.LocalTime
 import Foreign.C.String
 import Foreign.ForeignPtr
+import Foreign.Ptr
 import Graphics.Rendering.Cairo
 import qualified Graphics.Rendering.Cairo.Types as XP
 
@@ -100,9 +101,10 @@ pngSurfaceFromByteString bs = do
     let (bs_fp, _, bs_size) = B.toForeignPtr bs -- Does this fp have to be explicitly freed?
     liftIO $ withForeignPtr bs_fp $ \bs_ptr -> withCString "rb" $ \mode_cs -> do
         file_ptr <- M.c_fmemopen bs_ptr (fromIntegral bs_size) mode_cs
-        read_funp <- M.mkReadFromPngStreamForeign readFromPngStream -- Have to make sure to free this funp
+        read_funp <- M.mkReadFromPngStreamForeign readFromPngStream
         surface <- XP.mkSurface =<< M.c_cairo_image_surface_create_from_png_stream read_funp file_ptr
         XP.manageSurface surface
+        freeHaskellFunPtr read_funp
         M.c_fclose file_ptr
         return surface
 
