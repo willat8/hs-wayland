@@ -183,16 +183,13 @@ instance Storable Encoder where
         is_connected <- #{peek struct encoder, is_connected} ptr
         is_active <- #{peek struct encoder, is_active} ptr
         recording_title <- peekCString =<< #{peek struct encoder, recording_title} ptr
-        channel_icon <- deRefStablePtr =<< #{peek struct encoder, channel_icon_stable_ptr} ptr
+        channel_icon <- deRefStablePtr =<< #{peek struct encoder, channel_icon} ptr
         return (Encoder is_connected is_active recording_title channel_icon)
     poke ptr (Encoder is_connected is_active recording_title channel_icon) = do
         #{poke struct encoder, is_connected} ptr is_connected
         #{poke struct encoder, is_active} ptr is_active
         #{poke struct encoder, recording_title} ptr =<< newCString recording_title
-        let (ci_fp, _, ci_size) = B.toForeignPtr channel_icon
-        #{poke struct encoder, channel_icon_size} ptr ci_size
-        withForeignPtr ci_fp $ \ci_ptr -> #{poke struct encoder, channel_icon} ptr ci_ptr
-        #{poke struct encoder, channel_icon_stable_ptr} ptr =<< newStablePtr channel_icon
+        #{poke struct encoder, channel_icon} ptr =<< newStablePtr channel_icon
 
 data Status = Status { statusDisplay     :: Ptr Display
                      , statusWindow      :: Ptr Window
@@ -231,7 +228,7 @@ instance Storable Status where
         -- Free any existing recording_title CStrings and channel_icon StablePtrs, then the array
         old_encoders <- take <$> #{peek struct status, num_encoders} ptr <*> (iterate (flip advancePtr 1) <$> #{peek struct status, encoders} ptr :: IO [Ptr Encoder])
         mapM_ free =<< mapM #{peek struct encoder, recording_title} old_encoders
-        mapM_ freeStablePtr =<< mapM #{peek struct encoder, channel_icon_stable_ptr} old_encoders
+        mapM_ freeStablePtr =<< mapM #{peek struct encoder, channel_icon} old_encoders
         free =<< #{peek struct status, encoders} ptr
 
         #{poke struct status, num_encoders} ptr (length encoders)
