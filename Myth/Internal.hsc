@@ -267,6 +267,9 @@ foreign import ccall unsafe "display_unwatch_fd"
 foreign import ccall unsafe "display_watch_fd"
     c_display_watch_fd :: Ptr Display -> Fd -> EpollOperation -> Ptr Task -> IO ()
 
+foreign import ccall safe "fclose"
+    c_fclose :: Ptr () -> IO CInt
+
 foreign import ccall safe "fmemopen"
     c_fmemopen :: Ptr Word8 -> CSize -> CString -> IO (Ptr ())
 
