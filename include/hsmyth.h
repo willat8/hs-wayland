@@ -1,3 +1,4 @@
+#include <HsFFI.h>
 #include "window.h"
 #include "weston-desktop-shell-client-protocol.h"
 
@@ -36,6 +37,7 @@ struct encoder {
     char *recording_title;
     size_t channel_icon_size;
     unsigned char *channel_icon;
+    HsStablePtr *channel_icon_stable_ptr;
 };
 
 struct status {
