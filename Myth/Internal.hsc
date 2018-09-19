@@ -35,6 +35,10 @@ newtype EpollOperation = EpollOperation { unEpollOperation :: CInt }
     deriving (Eq,Show)
 #enum EpollOperation, EpollOperation, EPOLLIN
 
+newtype CairoStatus = CairoStatus { unCairoStatus :: CInt }
+    deriving (Eq,Show)
+#enum CairoStatus, CairoStatus, CAIRO_STATUS_SUCCESS, CAIRO_STATUS_READ_ERROR
+
 data WlOutputInterface
 foreign import ccall unsafe "&wl_output_interface"
     c_wl_output_interface :: Ptr WlOutputInterface
@@ -235,7 +239,7 @@ instance Storable Status where
         #{poke struct status, encoders} ptr =<< newArray encoders
 
 foreign import ccall safe "cairo_image_surface_create_from_png_stream"
-    c_cairo_image_surface_create_from_png_stream :: FunPtr (Ptr () -> Ptr Word8 -> CSize -> IO CInt) -> Ptr () -> IO (Ptr XP.Surface)
+    c_cairo_image_surface_create_from_png_stream :: FunPtr (Ptr () -> Ptr Word8 -> CSize -> IO CairoStatus) -> Ptr () -> IO (Ptr XP.Surface)
 
 foreign import ccall unsafe "display_bind"
     c_display_bind :: Ptr Display -> Word32 -> Ptr WlOutputInterface -> CInt -> IO (Ptr WlOutput)
@@ -432,8 +436,8 @@ foreign import ccall unsafe "wrapper"
                                     IO (FunPtr (Ptr Display -> Word32 -> CString -> Word32 -> Ptr () -> IO ()))
 
 foreign import ccall safe "wrapper"
-    mkReadFromPngStreamForeign ::            (Ptr () -> Ptr Word8 -> CSize -> IO CInt) ->
-                                  IO (FunPtr (Ptr () -> Ptr Word8 -> CSize -> IO CInt))
+    mkReadFromPngStreamForeign ::            (Ptr () -> Ptr Word8 -> CSize -> IO CairoStatus) ->
+                                  IO (FunPtr (Ptr () -> Ptr Word8 -> CSize -> IO CairoStatus))
 
 foreign import ccall safe "dynamic"
     mkSurfaceConfigure :: FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr Window -> Int32 -> Int32 -> IO ()) ->

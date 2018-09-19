@@ -98,7 +98,7 @@ drawChannelIcon x y ci = do
     paint
 
 pngSurfaceFromByteString bs = do
-    let (bs_fp, _, bs_size) = B.toForeignPtr bs -- Does this fp have to be explicitly freed?
+    let (bs_fp, _, bs_size) = B.toForeignPtr bs
     liftIO $ withForeignPtr bs_fp $ \bs_ptr -> withCString "rb" $ \mode_cs -> do
         file_ptr <- M.c_fmemopen bs_ptr (fromIntegral bs_size) mode_cs
         read_funp <- M.mkReadFromPngStreamForeign readFromPngStream
@@ -109,6 +109,6 @@ pngSurfaceFromByteString bs = do
         return surface
 
 readFromPngStream file_ptr buffer_ptr count = do
-  M.c_fread buffer_ptr 1 count file_ptr
-  return 0 -- Replace this with proper enumeration value CAIRO_STATUS_SUCCESS or CAIRO_STATUS_READ_ERROR
+  bytes_read <- M.c_fread buffer_ptr 1 count file_ptr
+  return $ if (bytes_read /= count) then M.cairoStatusReadError else M.cairoStatusSuccess
 
