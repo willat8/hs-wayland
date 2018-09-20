@@ -1,6 +1,7 @@
 module Myth.Render (drawStatus, drawClock) where
 import qualified Myth.Internal as M
-import Control.Monad (zipWithM_)
+import Control.Monad (zipWithM_, when)
+import qualified Data.ByteString as S
 import qualified Data.ByteString.Internal as B
 import Data.Time.Clock
 import Data.Time.Format
@@ -23,16 +24,16 @@ drawStatus surface w h encoders = renderWith surface $ do
     let init_x = 160
     let y1 = (h - 2 * sq_dim) / 3
     let y2 = h - y1 - sq_dim
-    let ((M.Encoder c11 a11 _ _):(M.Encoder c12 a12 _ _):
+    let ((M.Encoder c11 a11 _ ci11):(M.Encoder c12 a12 _ _):
          (M.Encoder c21 a21 _ _):(M.Encoder c22 a22 _ _):
-         (M.Encoder c31 a31 _ _):(M.Encoder c32 a32 _ ci32):_) = encoders
+         (M.Encoder c31 a31 _ _):(M.Encoder c32 a32 _ _):_) = encoders
     drawSquare sq_dim init_x y1 c11 a11
     drawSquare sq_dim init_x y2 c12 a12
     drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21
     drawSquare sq_dim ((w - sq_dim) / 2) y2 c22 a22
     drawSquare sq_dim (w - init_x - sq_dim) y1 c31 a31
     drawSquare sq_dim (w - init_x - sq_dim) y2 c32 a32
-    drawChannelIcon 0 0 ci32
+    when (ci11 /= S.empty) $ drawChannelIcon 0 0 ci11
 
 -- | Draws a vertically and horizontally-centered 12h time to a Cairo surface.
 -- Requires the screen dimensions to position the text correctly.

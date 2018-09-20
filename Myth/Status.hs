@@ -20,22 +20,29 @@ parseActive = withObject "EncoderList" $ \o ->
 parseTitles = withObject "EncoderList" $ \o ->
     pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Recording")) . (V.toList) >>= mapM (.: "Title")
 
+parseIconPaths = withObject "EncoderList" $ \o ->
+    pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Recording")) . (V.toList) >>= mapM (.: "Channel") >>= mapM (.: "IconURL")
+
 getEncodersStatus = do
     req <- parseRequest "http://angel:6544/Dvr/GetEncoderList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 1000000 }
 
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
-    bsreq <- parseRequest "http://angel:6544/Guide/GetChannelIcon?ChanId=1002" >>= \req -> return req { responseTimeout = Just 1000000 }
-    ebs <- try $ B.toStrict . getResponseBody <$> httpLBS bsreq :: IO (Either HttpException S.ByteString)
-    let icon = case ebs of Right bs -> bs
-                           _        -> S.empty
-
-    let status = case eres of Right res -> zipWith4 Encoder connectedEncs activeEncs recordingTitles [S.empty, S.empty, S.empty, S.empty, S.empty, icon]
-                                           where body = getResponseBody res
-                                                 Success connectedEncs    = parse parseConnected body
-                                                 Success activeEncs       = parse parseActive body
-                                                 Success recordingTitles  = parse parseTitles body
-                              _         -> []
+    status <- case eres of Right res -> zipWith4 Encoder connectedEncs activeEncs recordingTitles <$> channelIcons
+                                        where body = getResponseBody res
+                                              Success connectedEncs    = parse parseConnected body
+                                              Success activeEncs       = parse parseActive body
+                                              Success recordingTitles  = parse parseTitles body
+                                              Success channelIconPaths = parse parseIconPaths body
+                                              channelIcons = mapM getChannelIcon channelIconPaths
+                           _         -> return []
 
     return status
+
+getChannelIcon "" = return S.empty
+getChannelIcon path = do
+    bsreq <- parseRequest ("http://angel:6544" ++ path) >>= \req -> return req { responseTimeout = Just 1000000 }
+    ebs <- try $ B.toStrict . getResponseBody <$> httpLBS bsreq :: IO (Either HttpException S.ByteString)
+    return $ case ebs of Right bs -> bs
+                         _        -> S.empty
 
