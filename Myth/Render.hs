@@ -1,6 +1,6 @@
 module Myth.Render (drawStatus, drawClock) where
 import qualified Myth.Internal as M
-import Control.Monad (zipWithM_, when)
+import Control.Monad (zipWithM_)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Internal as B
 import Data.Time.Clock
@@ -24,16 +24,13 @@ drawStatus surface w h encoders = renderWith surface $ do
     let init_x = 160
     let y1 = (h - 2 * sq_dim) / 3
     let y2 = h - y1 - sq_dim
-    let ((M.Encoder c11 a11 _ ci11):(M.Encoder c12 a12 _ _):
-         (M.Encoder c21 a21 _ _):(M.Encoder c22 a22 _ _):
-         (M.Encoder c31 a31 _ _):(M.Encoder c32 a32 _ _):_) = encoders
-    drawSquare sq_dim init_x y1 c11 a11
-    drawSquare sq_dim init_x y2 c12 a12
-    drawSquare sq_dim ((w - sq_dim) / 2) y1 c21 a21
-    drawSquare sq_dim ((w - sq_dim) / 2) y2 c22 a22
-    drawSquare sq_dim (w - init_x - sq_dim) y1 c31 a31
-    drawSquare sq_dim (w - init_x - sq_dim) y2 c32 a32
-    when (ci11 /= S.empty) $ drawChannelIcon 0 0 ci11
+    let e1:e2:e3:e4:e5:e6:_ = encoders
+    drawEncoder sq_dim init_x y1 e1
+    drawEncoder sq_dim init_x y2 e2
+    drawEncoder sq_dim ((w - sq_dim) / 2) y1 e3
+    drawEncoder sq_dim ((w - sq_dim) / 2) y2 e4
+    drawEncoder sq_dim (w - init_x - sq_dim) y1 e5
+    drawEncoder sq_dim (w - init_x - sq_dim) y2 e6
 
 -- | Draws a vertically and horizontally-centered 12h time to a Cairo surface.
 -- Requires the screen dimensions to position the text correctly.
@@ -49,17 +46,19 @@ drawClock surface w h encoders = renderWith surface $ do
     drawTime w h s
     drawRecordingTitles w h (M.encoderRecordingTitle <$> encoders)
 
-drawSquare w x y isGreen isPurple = do
+drawEncoder w x y (M.Encoder isConnected isActive _ channelIcon)
+    | isActive && channelIcon /= S.empty = drawChannelIcon x y channelIcon
+    | isConnected = drawSquare w x y (148, 194, 105) -- Green
+    | otherwise = drawSquare w x y (239, 41, 41) -- Red
+
+drawSquare w x y colour = do
     let h = w
         aspect = 1
         cornerRadius = h / 10
         radius = cornerRadius / aspect
         degrees = pi / 180
-        red = (239, 41, 41)
-        green = (148, 194, 105)
-        purple = (152, 107, 194)
-    let (fc1, fc2, fc3) = if isPurple then purple else if isGreen then green else red  -- Fill colour
-        (bc1, bc2, bc3) = if isPurple then green else (fc1, fc2, fc3)                  -- Border colour
+    let (fc1, fc2, fc3) = colour -- Fill colour
+        (bc1, bc2, bc3) = colour -- Border colour
     newPath
     arc (x + w - radius) (y + radius) radius (-90 * degrees) (0 * degrees)
     arc (x + w - radius) (y + h - radius) radius (0 * degrees) (90 * degrees)
