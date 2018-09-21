@@ -65,7 +65,7 @@ drawSquare w x y colour = do
     arc (x + radius) (y + h - radius) radius (90 * degrees) (180 * degrees)
     arc (x + radius) (y + radius) radius (180 * degrees) (270 * degrees)
     closePath
-    setSourceRGB (fc1 / 256) (fc2 / 256) (fc3 / 256)
+    setSourceRGBA (fc1 / 256) (fc2 / 256) (fc3 / 256) 0
     fillPreserve
     setSourceRGBA (bc1 / 256) (bc2 / 256) (bc3 / 256) 0.5
     setLineWidth 10
