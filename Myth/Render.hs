@@ -21,16 +21,14 @@ drawStatus surface w h encoders = renderWith surface $ do
     paint
     setOperator OperatorOver
     let sq_dim = 100
-    let init_x = 160
+        init_x = 160
     let y1 = (h - 2 * sq_dim) / 3
-    let y2 = h - y1 - sq_dim
-    let e1:e2:e3:e4:e5:e6:_ = encoders
-    drawEncoder sq_dim init_x y1 e1
-    drawEncoder sq_dim init_x y2 e2
-    drawEncoder sq_dim ((w - sq_dim) / 2) y1 e3
-    drawEncoder sq_dim ((w - sq_dim) / 2) y2 e4
-    drawEncoder sq_dim (w - init_x - sq_dim) y1 e5
-    drawEncoder sq_dim (w - init_x - sq_dim) y2 e6
+        y2 = h - y1 - sq_dim
+    let x1 = init_x
+        x2 = ((w - sq_dim) / 2)
+        x3 = (w - init_x - sq_dim)
+    let coords = [(x, y) | x <- [x1, x2, x3], y <- [y1, y2]]
+    zipWithM_ (drawEncoder sq_dim) coords encoders
 
 -- | Draws a vertically and horizontally-centered 12h time to a Cairo surface.
 -- Requires the screen dimensions to position the text correctly.
@@ -46,7 +44,7 @@ drawClock surface w h encoders = renderWith surface $ do
     drawTime w h s
     drawRecordingTitles w h (M.encoderRecordingTitle <$> encoders)
 
-drawEncoder w x y (M.Encoder isConnected isActive _ channelIcon)
+drawEncoder w (x, y) (M.Encoder isConnected isActive _ channelIcon)
     | isActive && channelIcon /= S.empty = drawChannelIcon x y channelIcon
     | isConnected = drawSquare w x y (148, 194, 105) -- Green
     | otherwise = drawSquare w x y (239, 41, 41) -- Red
