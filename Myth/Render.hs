@@ -45,7 +45,7 @@ drawClock surface w h encoders = renderWith surface $ do
     drawRecordingTitles w h (M.encoderRecordingTitle <$> encoders)
 
 drawEncoder w (x, y) (M.Encoder isConnected isActive _ channelIcon)
-    | isActive && channelIcon /= S.empty = drawChannelIcon x y channelIcon
+    | isActive && channelIcon /= S.empty = drawChannelIcon (x - 16) y channelIcon
     | isConnected = drawSquare w x y (148, 194, 105) -- Green
     | otherwise = drawSquare w x y (239, 41, 41) -- Red
 
