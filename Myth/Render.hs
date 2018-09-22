@@ -80,12 +80,12 @@ drawTime win_w win_h t = do
 drawRecordingTitles win_w win_h rts = do
     let rts' = reverse . filter (not . null) $ rts
     selectFontFace "sans-serif" FontSlantItalic FontWeightBold
-    setFontSize 30
+    setFontSize 36
     ys <- zipWith (\i (TextExtents _ yb _ h _ _) -> win_h -  i * (h - yb)) [1..] <$> mapM textExtents rts'
     zipWithM_ (\y rt -> setSourceRGBA 1 0.2 0.2 0.6
-                     >> arc (win_w / 5 - 20) (y - 10) 10 0 (fromIntegral 2 * pi)
+                     >> arc (win_w / 5 - 24) (y - 11) 11 0 (fromIntegral 2 * pi)
                      >> fill
-                     >> setSourceRGBA 1 1 1 1
+                     >> setSourceRGBA 1 1 1 0.8
                      >> moveTo (win_w / 5) y
                      >> showText rt
               ) ys rts'
