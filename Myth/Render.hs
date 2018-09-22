@@ -85,7 +85,7 @@ drawRecordingTitles win_w win_h rts = do
     zipWithM_ (\y rt -> setSourceRGBA 1 0.2 0.2 0.6
                      >> arc (win_w / 5 - 20) (y - 10) 10 0 (fromIntegral 2 * pi)
                      >> fill
-                     >> setSourceRGBA 1 1 1 0.3
+                     >> setSourceRGBA 1 1 1 1
                      >> moveTo (win_w / 5) y
                      >> showText rt
               ) ys rts'
