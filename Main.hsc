@@ -28,9 +28,9 @@ redrawHandler _ d_ptr = do
     Status _ window_ptr _ w h _ _ show_clock encoders <- peek status_ptr
     xpsurface <- XP.mkSurface =<< c_window_get_surface window_ptr
     XP.manageSurface xpsurface
-    case show_clock of False -> do drawStatus xpsurface (fromIntegral w) (fromIntegral h) encoders
-                                   peek status_ptr >>= \status -> poke status_ptr status { statusShowClock = True }
-                       True -> drawClock xpsurface (fromIntegral w) (fromIntegral h) encoders
+    case (encoders, show_clock) of (_:_, False) -> do drawStatus xpsurface (fromIntegral w) (fromIntegral h) encoders
+                                                      peek status_ptr >>= \status -> poke status_ptr status { statusShowClock = True }
+                                   otherwise -> drawClock xpsurface (fromIntegral w) (fromIntegral h) encoders
 
 buttonHandler _ input_ptr _ _ state d_ptr = do
     Status display_ptr window_ptr _ _ _ _ _ _ _ <- peek (castPtr d_ptr)
