@@ -41,7 +41,7 @@ getEncodersStatus = do
 
 getChannelIcon "" = return S.empty
 getChannelIcon path = do
-    bsreq <- parseRequest ("http://angel:6544" ++ path) >>= \req -> return req { responseTimeout = Just 1000000 }
+    bsreq <- parseRequest ("http://cherub:6544" ++ path) >>= \req -> return req { responseTimeout = Just 1000000 }
     ebs <- try $ B.toStrict . getResponseBody <$> httpLBS bsreq :: IO (Either HttpException S.ByteString)
     return $ case ebs of Right bs -> bs
                          _        -> S.empty
