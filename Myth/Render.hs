@@ -21,13 +21,13 @@ drawStatus surface w h encoders = renderWith surface $ do
     paint
     setOperator OperatorOver
     let sq_dim = 100
-        init_x = 160
-    let y1 = (h - 2 * sq_dim) / 3
-        y2 = h - y1 - sq_dim
+        init_x = 80
+    let y = (h - sq_dim) / 2
     let x1 = init_x
-        x2 = ((w - sq_dim) / 2)
-        x3 = (w - init_x - sq_dim)
-    let coords = [(x, y) | x <- [x1, x2, x3], y <- [y1, y2]]
+        x2 = (w + x1 - sq_dim) / 3
+        x3 = w - x2 - sq_dim
+        x4 = w - x1 - sq_dim
+    let coords = [(x, y) | x <- [x1, x2, x3, x4]]
     zipWithM_ (drawEncoder sq_dim) coords encoders
 
 -- | Draws a vertically and horizontally-centered 12h time to a Cairo surface.
