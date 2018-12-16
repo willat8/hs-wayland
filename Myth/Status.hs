@@ -24,7 +24,7 @@ parseIconPaths = withObject "EncoderList" $ \o ->
     pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Recording")) . (V.toList) >>= mapM (.: "Channel") >>= mapM (.: "IconURL")
 
 getEncodersStatus = do
-    req <- parseRequest "http://cherub:6544/Dvr/GetEncoderList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 1000000 }
+    req <- parseRequest "http://angel:6544/Dvr/GetEncoderList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 1000000 }
 
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
@@ -41,7 +41,7 @@ getEncodersStatus = do
 
 getChannelIcon "" = return S.empty
 getChannelIcon path = do
-    bsreq <- parseRequest ("http://cherub:6544" ++ path) >>= \req -> return req { responseTimeout = Just 1000000 }
+    bsreq <- parseRequest ("http://angel:6544" ++ path) >>= \req -> return req { responseTimeout = Just 1000000 }
     ebs <- try $ B.toStrict . getResponseBody <$> httpLBS bsreq :: IO (Either HttpException S.ByteString)
     return $ case ebs of Right bs -> bs
                          _        -> S.empty
