@@ -62,12 +62,13 @@ statusConfigure status_ptr = do
     c_window_set_key_handler window_ptr =<< mkKeyHandlerForeign keyHandler
     c_window_schedule_resize window_ptr w h
 
-statusCreate display_ptr window_ptr w h = do
+statusCreate display_ptr w h = do
     mallocForeignPtr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
         FC.addForeignPtrFinalizer status_fp $ peek status_ptr >>= \(Status _ window_ptr widget_ptr _ _ check_fd _ _ _) -> do
             c_display_unwatch_fd display_ptr check_fd
             closeFd check_fd
             windowDestroy widget_ptr window_ptr
+        window_ptr <- c_window_create display_ptr
         widget_ptr <- c_window_add_widget window_ptr $ castPtr status_ptr
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
         check_task <- Task <$> mkStatusCheckForeign statusCheck
@@ -164,10 +165,6 @@ globalHandlerRemove _ _ interface_cs _ d_ptr = do
 
 displayCreate = alloca $ \argv -> c_display_create 0 argv >>= newForeignPtr c_display_destroy
 
-windowCreate display_ptr = do
-    window_ptr <- c_window_create display_ptr
-    return window_ptr
-
 windowDestroy widget_ptr window_ptr = do
     c_widget_destroy widget_ptr
     c_window_destroy window_ptr
@@ -188,8 +185,7 @@ desktopCreate = do
 main = do
     displayCreate >>= (`withForeignPtr` \display_ptr -> do
     desktopCreate >>= \desktop_fp -> withForeignPtr desktop_fp $ \desktop_ptr -> do
-    window_ptr <- windowCreate display_ptr
-    statusCreate display_ptr window_ptr 800 480 >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
+    statusCreate display_ptr 800 480 >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
         peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopDisplay = display_ptr }
         c_display_set_user_data display_ptr $ castPtr desktop_ptr
         c_display_set_global_handler display_ptr =<< mkGlobalHandlerForeign globalHandler
