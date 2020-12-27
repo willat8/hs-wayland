@@ -12,7 +12,7 @@ import System.Posix.IO
 
 statusCheck t_ptr _ = do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
-    Status _ _ widget_ptr _ _ check_fd _ _ _ <- peek status_ptr
+    Status _ _ widget_ptr _ _ check_fd _ _ _ _ <- peek status_ptr
     fdRead check_fd #{size uint64_t}
     encoders <- getEncodersStatus
     -- Show the clock when the encoders are unchanged from the last status check
@@ -20,12 +20,12 @@ statusCheck t_ptr _ = do
     c_widget_schedule_redraw widget_ptr
 
 resizeHandler _ _ _ d_ptr = do
-    Status _ _ widget_ptr w h _ _ _ _ <- peek (castPtr d_ptr)
+    Status _ _ widget_ptr w h _ _ _ _ _ <- peek (castPtr d_ptr)
     c_widget_set_size widget_ptr w h
 
 redrawHandler _ d_ptr = do
     let status_ptr = castPtr d_ptr
-    Status _ window_ptr _ w h _ _ show_clock encoders <- peek status_ptr
+    Status _ window_ptr _ w h _ _ show_clock encoders _ <- peek status_ptr
     xpsurface <- XP.mkSurface =<< c_window_get_surface window_ptr
     XP.manageSurface xpsurface
     case (encoders, show_clock) of (_:_, False) -> do drawStatus xpsurface (fromIntegral w) (fromIntegral h) encoders
@@ -33,18 +33,18 @@ redrawHandler _ d_ptr = do
                                    otherwise -> drawClock xpsurface (fromIntegral w) (fromIntegral h) encoders
 
 buttonHandler _ input_ptr _ _ state d_ptr = do
-    Status display_ptr window_ptr _ _ _ _ _ _ _ <- peek (castPtr d_ptr)
+    Status display_ptr window_ptr _ _ _ _ _ _ _ _ <- peek (castPtr d_ptr)
     if state == wlPointerButtonStatePressed
         then c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
         else return ()
 
 touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
-    Status display_ptr window_ptr _ _ _ _ _ _ _ <- peek (castPtr d_ptr)
+    Status display_ptr window_ptr _ _ _ _ _ _ _ _ <- peek (castPtr d_ptr)
     c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
 
 keyHandler _ _ _ _ _ state d_ptr = do
     let status_ptr = castPtr d_ptr
-    Status _ _ widget_ptr _ _ check_fd _ _ _ <- peek status_ptr
+    Status _ _ widget_ptr _ _ check_fd _ _ _ _ <- peek status_ptr
     if state == wlKeyboardKeyStatePressed
         then do with (ITimerSpec (TimeSpec 30 0) (TimeSpec 30 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
                 peek status_ptr >>= \status -> poke status_ptr status { statusShowClock = False }
@@ -52,7 +52,7 @@ keyHandler _ _ _ _ _ state d_ptr = do
         else return ()
 
 statusConfigure status_ptr = do
-    Status display_ptr window_ptr widget_ptr w h check_fd _ _ _ <- peek status_ptr
+    Status display_ptr window_ptr widget_ptr w h check_fd _ _ _ _ <- peek status_ptr
     c_display_watch_fd display_ptr check_fd epollin (#{ptr struct status, check_task} status_ptr)
     with (ITimerSpec (TimeSpec 30 0) (TimeSpec 1 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
     c_widget_set_resize_handler widget_ptr =<< mkResizeHandlerForeign resizeHandler
@@ -64,17 +64,39 @@ statusConfigure status_ptr = do
 
 statusCreate display_ptr w h = do
     mallocForeignPtr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
-        FC.addForeignPtrFinalizer status_fp $ peek status_ptr >>= \(Status _ window_ptr widget_ptr _ _ check_fd _ _ _) -> do
-            c_display_unwatch_fd display_ptr check_fd
-            closeFd check_fd
-            windowDestroy widget_ptr window_ptr
         window_ptr <- c_window_create display_ptr
         widget_ptr <- c_window_add_widget window_ptr $ castPtr status_ptr
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
         check_task <- Task <$> mkStatusCheckForeign statusCheck
-        poke status_ptr (Status display_ptr window_ptr widget_ptr w h check_fd check_task True [])
+        statusAddAlert status_ptr widget_ptr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
+            FC.addForeignPtrFinalizer status_fp $ do
+                c_display_unwatch_fd display_ptr check_fd
+                closeFd check_fd
+                finalizeForeignPtr alert_fp
+                windowDestroy widget_ptr window_ptr
+            poke status_ptr (Status display_ptr window_ptr widget_ptr w h check_fd check_task True [] alert_ptr)
         c_window_set_user_data window_ptr $ castPtr status_ptr
         return status_fp
+
+alertRedrawHandler _ d_ptr = do
+    let alert_ptr = castPtr d_ptr
+    Alert status_ptr widget_ptr <- peek alert_ptr
+    Status _ _ status_widget_ptr _ _ _ _ _ _ _ <- peek status_ptr
+    xp <- c_widget_cairo_create status_widget_ptr
+    xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
+    XP.manageSurface xpsurface
+    drawAlert xpsurface
+
+statusAddAlert status_ptr status_widget_ptr = do
+    mallocForeignPtr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
+        widget_ptr <- c_widget_add_widget status_widget_ptr (castPtr alert_ptr)
+        poke alert_ptr (Alert status_ptr widget_ptr)
+        redraw_funp <- mkRedrawHandlerForeign alertRedrawHandler
+        c_widget_set_redraw_handler widget_ptr redraw_funp
+        FC.addForeignPtrFinalizer alert_fp $ do
+            freeHaskellFunPtr redraw_funp
+            c_widget_destroy widget_ptr
+        return alert_fp
 
 backgroundConfigure _ _ _ window_ptr w h = do
     bg_ptr <- castPtr <$> c_window_get_user_data window_ptr

@@ -1,4 +1,4 @@
-module Myth.Render (drawStatus, drawClock) where
+module Myth.Render (drawStatus, drawClock, drawAlert) where
 import qualified Myth.Internal as M
 import Control.Monad (zipWithM_)
 import qualified Data.ByteString as S
@@ -109,4 +109,7 @@ pngSurfaceFromByteString bs = do
 readFromPngStream file_ptr buffer_ptr count = do
   bytes_read <- M.c_fread buffer_ptr 1 count file_ptr
   return $ if (bytes_read /= count) then M.cairoStatusReadError else M.cairoStatusSuccess
+
+drawAlert surface = renderWith surface $ do
+    drawSquare 50 10 10 (148, 194, 105) -- Green
 

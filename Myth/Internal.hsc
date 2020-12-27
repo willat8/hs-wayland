@@ -195,6 +195,20 @@ instance Storable Encoder where
         #{poke struct encoder, recording_title} ptr =<< newCString recording_title
         #{poke struct encoder, channel_icon} ptr =<< newStablePtr channel_icon
 
+data Alert = Alert { alertStatus :: Ptr Status
+                   , alertWidget :: Ptr Widget
+                   }
+instance Storable Alert where
+    sizeOf _    = #{size struct alert}
+    alignment _ = #{alignment struct alert}
+    peek ptr = do
+        status_ptr <- #{peek struct alert, status} ptr
+        widget_ptr <- #{peek struct alert, widget} ptr
+        return (Alert status_ptr widget_ptr)
+    poke ptr (Alert status_ptr widget_ptr) = do
+        #{poke struct alert, status} ptr status_ptr
+        #{poke struct alert, widget} ptr widget_ptr
+
 data Status = Status { statusDisplay     :: Ptr Display
                      , statusWindow      :: Ptr Window
                      , statusWidget      :: Ptr Widget
@@ -204,6 +218,7 @@ data Status = Status { statusDisplay     :: Ptr Display
                      , statusCheckTask   :: Task
                      , statusShowClock   :: Bool
                      , statusEncoders    :: [Encoder]
+                     , statusAlert       :: Ptr Alert
                      }
 instance Storable Status where
     sizeOf _    = #{size struct status}
@@ -218,8 +233,9 @@ instance Storable Status where
         check_task <- #{peek struct status, check_task} ptr
         show_clock <- #{peek struct status, show_clock} ptr
         encoders <- id =<< peekArray <$> #{peek struct status, num_encoders} ptr <*> #{peek struct status, encoders} ptr
-        return (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock encoders)
-    poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock encoders) = do
+        alert_ptr <- #{peek struct status, alert} ptr
+        return (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock encoders alert_ptr)
+    poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock encoders alert_ptr) = do
         #{poke struct status, display} ptr display_ptr
         #{poke struct status, window} ptr window_ptr
         #{poke struct status, widget} ptr widget_ptr
@@ -237,6 +253,10 @@ instance Storable Status where
 
         #{poke struct status, num_encoders} ptr (length encoders)
         #{poke struct status, encoders} ptr =<< newArray encoders
+        #{poke struct status, alert} ptr alert_ptr
+
+foreign import ccall safe "cairo_get_target"
+    c_cairo_get_target :: Ptr XP.Cairo -> IO (Ptr XP.Surface)
 
 foreign import ccall safe "cairo_image_surface_create_from_png_stream"
     c_cairo_image_surface_create_from_png_stream :: FunPtr (Ptr () -> Ptr Word8 -> CSize -> IO CairoStatus) -> Ptr () -> IO (Ptr XP.Surface)
@@ -318,6 +338,12 @@ foreign import ccall unsafe "window_set_key_handler"
 
 foreign import ccall unsafe "window_set_user_data"
     c_window_set_user_data :: Ptr Window -> Ptr () -> IO ()
+
+foreign import ccall safe "widget_add_widget"
+    c_widget_add_widget :: Ptr Widget -> Ptr () -> IO (Ptr Widget)
+
+foreign import ccall safe "widget_cairo_create"
+    c_widget_cairo_create :: Ptr Widget -> IO (Ptr XP.Cairo)
 
 foreign import ccall unsafe "widget_destroy"
     c_widget_destroy :: Ptr Widget -> IO ()

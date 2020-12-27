@@ -38,6 +38,11 @@ struct encoder {
     HsStablePtr *channel_icon;
 };
 
+struct alert {
+    struct status *status;
+    struct widget *widget;
+};
+
 struct status {
     struct display *display;
     struct window *window;
@@ -48,5 +53,6 @@ struct status {
     int show_clock;
     size_t num_encoders;
     struct encoder *encoders;
+    struct alert *alert;
 };
 
