@@ -348,6 +348,9 @@ foreign import ccall safe "widget_cairo_create"
 foreign import ccall unsafe "widget_destroy"
     c_widget_destroy :: Ptr Widget -> IO ()
 
+foreign import ccall safe "widget_get_last_time"
+    c_widget_get_last_time :: Ptr Widget -> IO (CUInt)
+
 foreign import ccall unsafe "widget_schedule_redraw"
     c_widget_schedule_redraw :: Ptr Widget -> IO ()
 

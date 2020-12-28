@@ -110,6 +110,6 @@ readFromPngStream file_ptr buffer_ptr count = do
   bytes_read <- M.c_fread buffer_ptr 1 count file_ptr
   return $ if (bytes_read /= count) then M.cairoStatusReadError else M.cairoStatusSuccess
 
-drawAlert surface = renderWith surface $ do
-    drawSquare 50 10 10 (148, 194, 105) -- Green
+drawAlert surface time = renderWith surface $ do
+    drawSquare (fromIntegral (time `mod` 2000) / 40) 10 10 (148, 194, 105) -- Green
 

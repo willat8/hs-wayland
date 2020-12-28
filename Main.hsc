@@ -85,7 +85,8 @@ alertRedrawHandler _ d_ptr = do
     xp <- c_widget_cairo_create status_widget_ptr
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     XP.manageSurface xpsurface
-    drawAlert xpsurface
+    drawAlert xpsurface =<< c_widget_get_last_time widget_ptr
+    c_widget_schedule_redraw widget_ptr
 
 statusAddAlert status_ptr status_widget_ptr = do
     mallocForeignPtr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
