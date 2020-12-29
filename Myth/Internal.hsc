@@ -255,6 +255,9 @@ instance Storable Status where
         #{poke struct status, encoders} ptr =<< newArray encoders
         #{poke struct status, alert} ptr alert_ptr
 
+foreign import ccall safe "cairo_destroy"
+    c_cairo_destroy :: Ptr XP.Cairo -> IO ()
+
 foreign import ccall safe "cairo_get_target"
     c_cairo_get_target :: Ptr XP.Cairo -> IO (Ptr XP.Surface)
 

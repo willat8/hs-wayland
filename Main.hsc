@@ -83,8 +83,8 @@ alertRedrawHandler _ d_ptr = do
     Alert status_ptr widget_ptr <- peek alert_ptr
     Status _ _ status_widget_ptr _ _ _ _ _ _ _ <- peek status_ptr
     xp <- c_widget_cairo_create status_widget_ptr
-    xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
-    XP.manageSurface xpsurface
+    xpsurface <- XP.mkSurface =<< c_cairo_get_target xp -- already being managed by other finalizer?
+    c_cairo_destroy xp
     drawAlert xpsurface =<< c_widget_get_last_time widget_ptr
     c_widget_schedule_redraw widget_ptr
 
