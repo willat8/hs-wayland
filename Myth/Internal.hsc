@@ -219,7 +219,6 @@ data Status = Status { statusDisplay     :: Ptr Display
                      , statusCheckTask   :: Task
                      , statusShowClock   :: Bool
                      , statusEncoders    :: [Encoder]
-                     , statusAlert       :: Ptr Alert
                      }
 instance Storable Status where
     sizeOf _    = #{size struct status}
@@ -234,9 +233,8 @@ instance Storable Status where
         check_task <- #{peek struct status, check_task} ptr
         show_clock <- #{peek struct status, show_clock} ptr
         encoders <- id =<< peekArray <$> #{peek struct status, num_encoders} ptr <*> #{peek struct status, encoders} ptr
-        alert_ptr <- #{peek struct status, alert} ptr
-        return (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock encoders alert_ptr)
-    poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock encoders alert_ptr) = do
+        return (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock encoders)
+    poke ptr (Status display_ptr window_ptr widget_ptr width height check_fd check_task show_clock encoders) = do
         #{poke struct status, display} ptr display_ptr
         #{poke struct status, window} ptr window_ptr
         #{poke struct status, widget} ptr widget_ptr
@@ -254,7 +252,6 @@ instance Storable Status where
 
         #{poke struct status, num_encoders} ptr (length encoders)
         #{poke struct status, encoders} ptr =<< newArray encoders
-        #{poke struct status, alert} ptr alert_ptr
 
 foreign import ccall safe "cairo_destroy"
     c_cairo_destroy :: Ptr XP.Cairo -> IO ()
@@ -310,7 +307,7 @@ foreign import ccall unsafe "timerfd_create"
 foreign import ccall unsafe "timerfd_settime"
     c_timerfd_settime :: Fd -> CInt -> Ptr ITimerSpec -> Ptr ITimerSpec -> IO ()
 
-foreign import ccall unsafe "window_add_subsurface"
+foreign import ccall safe "window_add_subsurface"
     c_window_add_subsurface :: Ptr Window -> Ptr () -> SubsurfaceMode -> IO (Ptr Widget)
 
 foreign import ccall unsafe "window_add_widget"

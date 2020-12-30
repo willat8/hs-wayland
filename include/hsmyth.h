@@ -39,7 +39,6 @@ struct encoder {
 };
 
 struct alert {
-    struct status *status;
     struct widget *widget;
 };
 
@@ -53,6 +52,5 @@ struct status {
     int show_clock;
     size_t num_encoders;
     struct encoder *encoders;
-    struct alert *alert;
 };
 
