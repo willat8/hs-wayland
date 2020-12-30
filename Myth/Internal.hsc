@@ -39,6 +39,10 @@ newtype CairoStatus = CairoStatus { unCairoStatus :: CInt }
     deriving (Eq,Show)
 #enum CairoStatus, CairoStatus, CAIRO_STATUS_SUCCESS, CAIRO_STATUS_READ_ERROR
 
+newtype SubsurfaceMode = SubsurfaceMode { unSubsurfaceMode :: CInt }
+    deriving (Eq,Show)
+#enum SubsurfaceMode, SubsurfaceMode, SUBSURFACE_SYNCHRONIZED, SUBSURFACE_DESYNCHRONIZED
+
 data WlOutputInterface
 foreign import ccall unsafe "&wl_output_interface"
     c_wl_output_interface :: Ptr WlOutputInterface
@@ -195,18 +199,15 @@ instance Storable Encoder where
         #{poke struct encoder, recording_title} ptr =<< newCString recording_title
         #{poke struct encoder, channel_icon} ptr =<< newStablePtr channel_icon
 
-data Alert = Alert { alertStatus :: Ptr Status
-                   , alertWidget :: Ptr Widget
+data Alert = Alert { alertWidget :: Ptr Widget
                    }
 instance Storable Alert where
     sizeOf _    = #{size struct alert}
     alignment _ = #{alignment struct alert}
     peek ptr = do
-        status_ptr <- #{peek struct alert, status} ptr
         widget_ptr <- #{peek struct alert, widget} ptr
-        return (Alert status_ptr widget_ptr)
-    poke ptr (Alert status_ptr widget_ptr) = do
-        #{poke struct alert, status} ptr status_ptr
+        return (Alert widget_ptr)
+    poke ptr (Alert widget_ptr) = do
         #{poke struct alert, widget} ptr widget_ptr
 
 data Status = Status { statusDisplay     :: Ptr Display
@@ -309,6 +310,9 @@ foreign import ccall unsafe "timerfd_create"
 foreign import ccall unsafe "timerfd_settime"
     c_timerfd_settime :: Fd -> CInt -> Ptr ITimerSpec -> Ptr ITimerSpec -> IO ()
 
+foreign import ccall unsafe "window_add_subsurface"
+    c_window_add_subsurface :: Ptr Window -> Ptr () -> SubsurfaceMode -> IO (Ptr Widget)
+
 foreign import ccall unsafe "window_add_widget"
     c_window_add_widget :: Ptr Window -> Ptr () -> IO (Ptr Widget)
 
@@ -341,9 +345,6 @@ foreign import ccall unsafe "window_set_key_handler"
 
 foreign import ccall unsafe "window_set_user_data"
     c_window_set_user_data :: Ptr Window -> Ptr () -> IO ()
-
-foreign import ccall safe "widget_add_widget"
-    c_widget_add_widget :: Ptr Widget -> Ptr () -> IO (Ptr Widget)
 
 foreign import ccall safe "widget_cairo_create"
     c_widget_cairo_create :: Ptr Widget -> IO (Ptr XP.Cairo)

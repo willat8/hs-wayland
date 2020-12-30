@@ -348,12 +348,12 @@ window_destroy(struct window *window);
 struct widget *
 window_add_widget(struct window *window, void *data);
 
-/*enum subsurface_mode {
+enum subsurface_mode {
 	SUBSURFACE_SYNCHRONIZED,
 	SUBSURFACE_DESYNCHRONIZED
 };
 
-struct widget *
+/*struct widget *
 window_add_subsurface(struct window *window, void *data,
 		      enum subsurface_mode default_mode);
 

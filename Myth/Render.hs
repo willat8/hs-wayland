@@ -111,5 +111,9 @@ readFromPngStream file_ptr buffer_ptr count = do
   return $ if (bytes_read /= count) then M.cairoStatusReadError else M.cairoStatusSuccess
 
 drawAlert surface time = renderWith surface $ do
+    setOperator OperatorSource
+    setSourceRGBA 0 0 0 0
+    paint
+    setOperator OperatorOver
     drawSquare (fromIntegral (time `mod` 2000) / 40) 10 10 (148, 194, 105) -- Green
 

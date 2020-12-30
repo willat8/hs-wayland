@@ -68,7 +68,7 @@ statusCreate display_ptr w h = do
         widget_ptr <- c_window_add_widget window_ptr $ castPtr status_ptr
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
         check_task <- Task <$> mkStatusCheckForeign statusCheck
-        statusAddAlert status_ptr widget_ptr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
+        alertCreate window_ptr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
             FC.addForeignPtrFinalizer status_fp $ do
                 c_display_unwatch_fd display_ptr check_fd
                 closeFd check_fd
@@ -78,24 +78,31 @@ statusCreate display_ptr w h = do
         c_window_set_user_data window_ptr $ castPtr status_ptr
         return status_fp
 
+alertResizeHandler _ _ _ d_ptr = do
+    Alert widget_ptr <- peek (castPtr d_ptr)
+    c_widget_set_allocation widget_ptr 0 0 800 80
+
 alertRedrawHandler _ d_ptr = do
     let alert_ptr = castPtr d_ptr
-    Alert status_ptr widget_ptr <- peek alert_ptr
-    Status _ _ status_widget_ptr _ _ _ _ _ _ _ <- peek status_ptr
-    xp <- c_widget_cairo_create status_widget_ptr
-    xpsurface <- XP.mkSurface =<< c_cairo_get_target xp -- already being managed by other finalizer?
+    Alert widget_ptr <- peek alert_ptr
+    xp <- c_widget_cairo_create widget_ptr
+    xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
+    --XP.manageSurface xpsurface -- does the parent surface destroy clean up this subsurface?
     drawAlert xpsurface =<< c_widget_get_last_time widget_ptr
     c_widget_schedule_redraw widget_ptr
 
-statusAddAlert status_ptr status_widget_ptr = do
+alertCreate window_ptr = do
     mallocForeignPtr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
-        widget_ptr <- c_widget_add_widget status_widget_ptr (castPtr alert_ptr)
-        poke alert_ptr (Alert status_ptr widget_ptr)
+        widget_ptr <- c_window_add_subsurface window_ptr (castPtr alert_ptr) subsurfaceDesynchronized
+        poke alert_ptr (Alert widget_ptr)
         redraw_funp <- mkRedrawHandlerForeign alertRedrawHandler
+        resize_funp <- mkResizeHandlerForeign alertResizeHandler
         c_widget_set_redraw_handler widget_ptr redraw_funp
+        c_widget_set_resize_handler widget_ptr resize_funp
         FC.addForeignPtrFinalizer alert_fp $ do
             freeHaskellFunPtr redraw_funp
+            freeHaskellFunPtr resize_funp
             c_widget_destroy widget_ptr
         return alert_fp
 
