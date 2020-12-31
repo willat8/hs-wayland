@@ -115,5 +115,17 @@ drawAlert surface time = renderWith surface $ do
     setSourceRGBA 0 0 0 0
     paint
     setOperator OperatorOver
-    drawSquare (fromIntegral (time `mod` 2000) / 40) 10 10 (148, 194, 105) -- Green
+    setSourceRGBA 1 0.2 0.2 0.6
+    selectFontFace "sans-serif" FontSlantItalic FontWeightBold
+    setFontSize 36
+    let x = 900 - fromIntegral (time `mod` 6000) / 5
+    let y = 36
+    moveTo x y
+    lineTo (x + 20) (y - 20)
+    moveTo (x + 20) y
+    lineTo x (y - 20)
+    stroke
+    setSourceRGBA 1 1 1 0.6
+    moveTo (x + 30) y
+    showText "Baby monitor alert"
 
