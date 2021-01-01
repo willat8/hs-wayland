@@ -110,9 +110,9 @@ readFromPngStream file_ptr buffer_ptr count = do
   bytes_read <- M.c_fread buffer_ptr 1 count file_ptr
   return $ if (bytes_read /= count) then M.cairoStatusReadError else M.cairoStatusSuccess
 
---drawAlert surface True _     = renderWith surface $ do
---    drawBlank surface
-drawAlert surface babyMonitorStatus time = renderWith surface $ do
+drawAlert surface True _     = renderWith surface $ do
+    drawBlank surface
+drawAlert surface False time = renderWith surface $ do
     drawBlank surface
     setOperator OperatorOver
     setSourceRGBA 1 0.2 0.2 0.6
@@ -127,7 +127,7 @@ drawAlert surface babyMonitorStatus time = renderWith surface $ do
     stroke
     setSourceRGBA 1 1 1 0.6
     moveTo (x + 30) y
-    showText (if babyMonitorStatus then "Baby monitor healthy" else "Baby monitor alert")
+    showText "Baby monitor alert"
 
 drawBlank surface = do
     setOperator OperatorSource

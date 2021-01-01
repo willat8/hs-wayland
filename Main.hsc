@@ -3,6 +3,7 @@ import Myth.Internal
 import Myth.Status
 import Myth.Alert
 import Myth.Render
+import Control.Monad
 import Foreign
 import Foreign.C.String
 import qualified Foreign.Concurrent as FC
@@ -83,9 +84,9 @@ alertCheck t_ptr _ = do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, check_task}
     Alert widget_ptr check_fd _ _ <- peek alert_ptr
     fdRead check_fd #{size uint64_t}
-    babyMonitorStatus <- getBabyMonitorStatus
-    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = babyMonitorStatus }
-    return ()
+    babyMonitorHealthy <- getBabyMonitorStatus
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = babyMonitorHealthy }
+    unless babyMonitorHealthy $ c_widget_schedule_redraw widget_ptr
 
 alertResizeHandler _ _ _ d_ptr = do
     Alert widget_ptr _ _ _ <- peek (castPtr d_ptr)
@@ -93,13 +94,13 @@ alertResizeHandler _ _ _ d_ptr = do
 
 alertRedrawHandler _ d_ptr = do
     let alert_ptr = castPtr d_ptr
-    Alert widget_ptr _ _ babyMonitorStatus <- peek alert_ptr
+    Alert widget_ptr _ _ babyMonitorHealthy <- peek alert_ptr
     xp <- c_widget_cairo_create widget_ptr
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
     --XP.manageSurface xpsurface -- does the parent surface destroy clean up this subsurface?
-    drawAlert xpsurface babyMonitorStatus =<< c_widget_get_last_time widget_ptr
-    c_widget_schedule_redraw widget_ptr
+    drawAlert xpsurface babyMonitorHealthy =<< c_widget_get_last_time widget_ptr
+    unless babyMonitorHealthy $ c_widget_schedule_redraw widget_ptr
 
 alertCreate display_ptr window_ptr = do
     mallocForeignPtr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
