@@ -199,9 +199,10 @@ instance Storable Encoder where
         #{poke struct encoder, recording_title} ptr =<< newCString recording_title
         #{poke struct encoder, channel_icon} ptr =<< newStablePtr channel_icon
 
-data Alert = Alert { alertWidget    :: Ptr Widget
-                   , alertCheckFd   :: Fd
-                   , alertCheckTask :: Task
+data Alert = Alert { alertWidget      :: Ptr Widget
+                   , alertCheckFd     :: Fd
+                   , alertCheckTask   :: Task
+                   , alertBabyMonitor :: Bool
                    }
 instance Storable Alert where
     sizeOf _    = #{size struct alert}
@@ -210,11 +211,13 @@ instance Storable Alert where
         widget_ptr <- #{peek struct alert, widget} ptr
         check_fd <- #{peek struct alert, check_fd} ptr
         check_task <- #{peek struct alert, check_task} ptr
-        return (Alert widget_ptr check_fd check_task)
-    poke ptr (Alert widget_ptr check_fd check_task) = do
+        baby_monitor <- #{peek struct alert, baby_monitor} ptr
+        return (Alert widget_ptr check_fd check_task baby_monitor)
+    poke ptr (Alert widget_ptr check_fd check_task baby_monitor) = do
         #{poke struct alert, widget} ptr widget_ptr
         #{poke struct alert, check_fd} ptr check_fd
         #{poke struct alert, check_task} ptr check_task
+        #{poke struct alert, baby_monitor} ptr baby_monitor
 
 data Status = Status { statusDisplay     :: Ptr Display
                      , statusWindow      :: Ptr Window

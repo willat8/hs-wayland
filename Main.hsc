@@ -81,22 +81,24 @@ statusCreate display_ptr w h = do
 
 alertCheck t_ptr _ = do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, check_task}
-    Alert widget_ptr check_fd _ <- peek alert_ptr
+    Alert widget_ptr check_fd _ _ <- peek alert_ptr
     fdRead check_fd #{size uint64_t}
+    babyMonitorStatus <- getBabyMonitorStatus
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = babyMonitorStatus }
     return ()
 
 alertResizeHandler _ _ _ d_ptr = do
-    Alert widget_ptr _ _ <- peek (castPtr d_ptr)
+    Alert widget_ptr _ _ _ <- peek (castPtr d_ptr)
     c_widget_set_allocation widget_ptr 0 0 800 80
 
 alertRedrawHandler _ d_ptr = do
     let alert_ptr = castPtr d_ptr
-    Alert widget_ptr _ _ <- peek alert_ptr
+    Alert widget_ptr _ _ babyMonitorStatus <- peek alert_ptr
     xp <- c_widget_cairo_create widget_ptr
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
     --XP.manageSurface xpsurface -- does the parent surface destroy clean up this subsurface?
-    drawAlert xpsurface =<< c_widget_get_last_time widget_ptr
+    drawAlert xpsurface babyMonitorStatus =<< c_widget_get_last_time widget_ptr
     c_widget_schedule_redraw widget_ptr
 
 alertCreate display_ptr window_ptr = do
@@ -104,7 +106,7 @@ alertCreate display_ptr window_ptr = do
         widget_ptr <- c_window_add_subsurface window_ptr (castPtr alert_ptr) subsurfaceDesynchronized
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
         check_task <- Task <$> mkCheckTaskForeign alertCheck
-        poke alert_ptr (Alert widget_ptr check_fd check_task)
+        poke alert_ptr (Alert widget_ptr check_fd check_task True)
         redraw_funp <- mkRedrawHandlerForeign alertRedrawHandler
         resize_funp <- mkResizeHandlerForeign alertResizeHandler
         c_widget_set_redraw_handler widget_ptr redraw_funp
