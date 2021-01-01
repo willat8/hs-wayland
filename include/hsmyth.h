@@ -40,6 +40,8 @@ struct encoder {
 
 struct alert {
     struct widget *widget;
+    int check_fd;
+    struct task check_task;
 };
 
 struct status {

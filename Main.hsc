@@ -1,6 +1,7 @@
 module Main (main) where
 import Myth.Internal
 import Myth.Status
+import Myth.Alert
 import Myth.Render
 import Foreign
 import Foreign.C.String
@@ -67,10 +68,10 @@ statusCreate display_ptr w h = do
         window_ptr <- c_window_create display_ptr
         widget_ptr <- c_window_add_widget window_ptr $ castPtr status_ptr
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
-        check_task <- Task <$> mkStatusCheckForeign statusCheck
+        check_task <- Task <$> mkCheckTaskForeign statusCheck
         poke status_ptr (Status display_ptr window_ptr widget_ptr w h check_fd check_task True [])
         c_window_set_user_data window_ptr $ castPtr status_ptr
-        alertCreate window_ptr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
+        alertCreate display_ptr window_ptr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
             FC.addForeignPtrFinalizer status_fp $ do
                 finalizeForeignPtr alert_fp
                 c_display_unwatch_fd display_ptr check_fd
@@ -78,13 +79,19 @@ statusCreate display_ptr w h = do
                 windowDestroy widget_ptr window_ptr
         return status_fp
 
+alertCheck t_ptr _ = do
+    let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, check_task}
+    Alert widget_ptr check_fd _ <- peek alert_ptr
+    fdRead check_fd #{size uint64_t}
+    return ()
+
 alertResizeHandler _ _ _ d_ptr = do
-    Alert widget_ptr <- peek (castPtr d_ptr)
+    Alert widget_ptr _ _ <- peek (castPtr d_ptr)
     c_widget_set_allocation widget_ptr 0 0 800 80
 
 alertRedrawHandler _ d_ptr = do
     let alert_ptr = castPtr d_ptr
-    Alert widget_ptr <- peek alert_ptr
+    Alert widget_ptr _ _ <- peek alert_ptr
     xp <- c_widget_cairo_create widget_ptr
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
@@ -92,14 +99,18 @@ alertRedrawHandler _ d_ptr = do
     drawAlert xpsurface =<< c_widget_get_last_time widget_ptr
     c_widget_schedule_redraw widget_ptr
 
-alertCreate window_ptr = do
+alertCreate display_ptr window_ptr = do
     mallocForeignPtr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
         widget_ptr <- c_window_add_subsurface window_ptr (castPtr alert_ptr) subsurfaceDesynchronized
-        poke alert_ptr (Alert widget_ptr)
+        check_fd <- c_timerfd_create clockMonotonic tfdCloexec
+        check_task <- Task <$> mkCheckTaskForeign alertCheck
+        poke alert_ptr (Alert widget_ptr check_fd check_task)
         redraw_funp <- mkRedrawHandlerForeign alertRedrawHandler
         resize_funp <- mkResizeHandlerForeign alertResizeHandler
         c_widget_set_redraw_handler widget_ptr redraw_funp
         c_widget_set_resize_handler widget_ptr resize_funp
+        c_display_watch_fd display_ptr check_fd epollin (#{ptr struct alert, check_task} alert_ptr)
+        with (ITimerSpec (TimeSpec 30 0) (TimeSpec 1 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
         FC.addForeignPtrFinalizer alert_fp $ do
             freeHaskellFunPtr redraw_funp
             freeHaskellFunPtr resize_funp

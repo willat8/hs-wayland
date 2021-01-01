@@ -2,6 +2,7 @@
 
 module Myth.Status (getEncodersStatus) where
 import Myth.Internal
+import Myth.Common
 import Network.HTTP.Simple
 import Network.HTTP.Client
 import Data.Aeson.Types
@@ -39,10 +40,6 @@ getEncodersStatus = do
 
     return status
 
-getChannelIcon "" = return S.empty
-getChannelIcon path = do
-    bsreq <- parseRequest ("http://192.168.0.10:6544" ++ path) >>= \req -> return req { responseTimeout = Just 5000000 }
-    ebs <- try $ B.toStrict . getResponseBody <$> httpLBS bsreq :: IO (Either HttpException S.ByteString)
-    return $ case ebs of Right bs -> bs
-                         _        -> S.empty
+getChannelIcon ""   = return S.empty
+getChannelIcon path = getUrl ("http://192.168.0.10:6544" ++ path)
 

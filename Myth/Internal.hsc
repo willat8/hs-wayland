@@ -199,16 +199,22 @@ instance Storable Encoder where
         #{poke struct encoder, recording_title} ptr =<< newCString recording_title
         #{poke struct encoder, channel_icon} ptr =<< newStablePtr channel_icon
 
-data Alert = Alert { alertWidget :: Ptr Widget
+data Alert = Alert { alertWidget    :: Ptr Widget
+                   , alertCheckFd   :: Fd
+                   , alertCheckTask :: Task
                    }
 instance Storable Alert where
     sizeOf _    = #{size struct alert}
     alignment _ = #{alignment struct alert}
     peek ptr = do
         widget_ptr <- #{peek struct alert, widget} ptr
-        return (Alert widget_ptr)
-    poke ptr (Alert widget_ptr) = do
+        check_fd <- #{peek struct alert, check_fd} ptr
+        check_task <- #{peek struct alert, check_task} ptr
+        return (Alert widget_ptr check_fd check_task)
+    poke ptr (Alert widget_ptr check_fd check_task) = do
         #{poke struct alert, widget} ptr widget_ptr
+        #{poke struct alert, check_fd} ptr check_fd
+        #{poke struct alert, check_task} ptr check_task
 
 data Status = Status { statusDisplay     :: Ptr Display
                      , statusWindow      :: Ptr Window
@@ -414,8 +420,8 @@ c_weston_desktop_shell_set_grab_surface ds_ptr s_ptr =
     c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_GRAB_SURFACE} (castPtr s_ptr) nullPtr
 
 foreign import ccall unsafe "wrapper"
-    mkStatusCheckForeign ::            (Ptr Task -> Word32 -> IO ()) ->
-                            IO (FunPtr (Ptr Task -> Word32 -> IO ()))
+    mkCheckTaskForeign ::            (Ptr Task -> Word32 -> IO ()) ->
+                          IO (FunPtr (Ptr Task -> Word32 -> IO ()))
 
 foreign import ccall unsafe "wrapper"
     mkResizeHandlerForeign ::            (Ptr Widget -> Int32 -> Int32 -> Ptr () -> IO ()) ->
