@@ -115,6 +115,8 @@ alertCreate display_ptr window_ptr = do
         c_display_watch_fd display_ptr check_fd epollin (#{ptr struct alert, check_task} alert_ptr)
         with (ITimerSpec (TimeSpec 30 0) (TimeSpec 1 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
         FC.addForeignPtrFinalizer alert_fp $ do
+            c_display_unwatch_fd display_ptr check_fd
+            closeFd check_fd
             freeHaskellFunPtr redraw_funp
             freeHaskellFunPtr resize_funp
             c_widget_destroy widget_ptr
