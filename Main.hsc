@@ -3,8 +3,9 @@ import Myth.Internal
 import Myth.Status
 import Myth.Alert
 import Myth.Render
+import Control.Concurrent
 import Control.Monad
-import Foreign
+import Foreign hiding (void)
 import Foreign.C.String
 import qualified Foreign.Concurrent as FC
 import qualified Graphics.Rendering.Cairo.Types as XP
@@ -13,6 +14,7 @@ import System.Posix.IO
 #include "hsmyth.h"
 
 statusCheck t_ptr _ = do
+    void . forkIO $ do
     let status_ptr = t_ptr `plusPtr` negate #{offset struct status, check_task}
     Status _ _ widget_ptr _ _ check_fd _ _ _ <- peek status_ptr
     fdRead check_fd #{size uint64_t}
@@ -81,6 +83,7 @@ statusCreate display_ptr w h = do
         return status_fp
 
 alertCheck t_ptr _ = do
+    void . forkIO $ do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, check_task}
     Alert widget_ptr check_fd _ _ <- peek alert_ptr
     fdRead check_fd #{size uint64_t}
