@@ -9,7 +9,7 @@ all: hsmyth
 	hsc2hs -C -iquoteinclude -I /usr/include/cairo $^
 
 hsmyth: Myth/Internal.hs Myth/Status.hs Myth/Render.hs Myth/Common.hs Myth/Alert.hs Main.hs
-	ghc -O2 -o $@ --make $(LDLIBS) Main $(westondeps)
+	ghc -O2 -threaded -o $@ --make $(LDLIBS) Main $(westondeps)
 	strip -p --strip-unneeded --remove-section=.comment $@
 
 install:
