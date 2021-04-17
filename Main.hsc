@@ -37,23 +37,13 @@ redrawHandler _ d_ptr = do
                                    otherwise -> drawClock xpsurface (fromIntegral w) (fromIntegral h) encoders
 
 buttonHandler _ input_ptr _ _ state d_ptr = do
-    Status display_ptr window_ptr _ _ _ _ _ _ _ <- peek (castPtr d_ptr)
-    if state == wlPointerButtonStatePressed
-        then c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
-        else return ()
+    return ()
 
 touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
-    Status display_ptr window_ptr _ _ _ _ _ _ _ <- peek (castPtr d_ptr)
-    c_window_move window_ptr input_ptr =<< c_display_get_serial display_ptr
+    return ()
 
 keyHandler _ _ _ _ _ state d_ptr = do
-    let status_ptr = castPtr d_ptr
-    Status _ _ widget_ptr _ _ check_fd _ _ _ <- peek status_ptr
-    if state == wlKeyboardKeyStatePressed
-        then do with (ITimerSpec (TimeSpec 30 0) (TimeSpec 30 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
-                peek status_ptr >>= \status -> poke status_ptr status { statusShowClock = False }
-                c_widget_schedule_redraw widget_ptr
-        else return ()
+    return ()
 
 statusConfigure status_ptr = do
     Status display_ptr window_ptr widget_ptr w h check_fd _ _ _ <- peek status_ptr
@@ -96,14 +86,17 @@ alertResizeHandler _ _ _ d_ptr = do
     c_widget_set_allocation widget_ptr 0 0 800 80
 
 alertRedrawHandler _ d_ptr = do
-    let alert_ptr = castPtr d_ptr
-    Alert widget_ptr _ _ babyMonitorHealthy <- peek alert_ptr
+    Alert widget_ptr _ _ babyMonitorHealthy <- peek (castPtr d_ptr)
     xp <- c_widget_cairo_create widget_ptr
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
-    --XP.manageSurface xpsurface -- does the parent surface destroy clean up this subsurface?
     drawAlert xpsurface babyMonitorHealthy =<< c_widget_get_last_time widget_ptr
     unless babyMonitorHealthy $ c_widget_schedule_redraw widget_ptr
+
+alertTouchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
+    let alert_ptr = castPtr d_ptr
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = True }
+    return ()
 
 alertCreate display_ptr window_ptr = do
     mallocForeignPtr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
@@ -115,6 +108,7 @@ alertCreate display_ptr window_ptr = do
         resize_funp <- mkResizeHandlerForeign alertResizeHandler
         c_widget_set_redraw_handler widget_ptr redraw_funp
         c_widget_set_resize_handler widget_ptr resize_funp
+        c_widget_set_touch_down_handler widget_ptr =<< mkTouchDownHandlerForeign alertTouchDownHandler
         c_display_watch_fd display_ptr check_fd epollin (#{ptr struct alert, check_task} alert_ptr)
         with (ITimerSpec (TimeSpec 30 0) (TimeSpec 1 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
         FC.addForeignPtrFinalizer alert_fp $ do
