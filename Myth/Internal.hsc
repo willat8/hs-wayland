@@ -56,6 +56,8 @@ data Widget
 data WlOutput
 data WlSurface
 data Input
+data Compositor
+data Region
 
 data Desktop = Desktop { desktopDisplay    :: Ptr Display
                        , desktopShell      :: Ptr WestonDesktopShell
@@ -361,6 +363,9 @@ foreign import ccall unsafe "widget_destroy"
 foreign import ccall safe "widget_get_last_time"
     c_widget_get_last_time :: Ptr Widget -> IO (CUInt)
 
+foreign import ccall unsafe "widget_get_wl_surface"
+    c_widget_get_wl_surface :: Ptr Widget -> IO (Ptr WlSurface)
+
 foreign import ccall unsafe "widget_schedule_redraw"
     c_widget_schedule_redraw :: Ptr Widget -> IO ()
 
@@ -405,6 +410,41 @@ foreign import ccall unsafe "wl_proxy_get_user_data"
 
 foreign import ccall unsafe "wl_proxy_marshal"
     c_wl_proxy_marshal :: Ptr WestonDesktopShell -> CInt -> Ptr () -> Ptr () -> IO ()
+
+foreign import ccall unsafe "wl_proxy_marshal"
+    c_wl_proxy_marshal_compositor_create_region :: Ptr Compositor -> CInt -> Ptr () -> Ptr () -> IO (Ptr Region)
+
+foreign import ccall unsafe "wl_proxy_marshal"
+    c_wl_proxy_marshal_region_add :: Ptr Region -> CInt -> CInt -> CInt -> CInt -> CInt -> IO ()
+
+foreign import ccall unsafe "wl_proxy_marshal"
+    c_wl_proxy_marshal_surface_set_input_region :: Ptr WlSurface -> CInt -> Ptr Region -> IO ()
+
+foreign import ccall unsafe "wl_proxy_marshal"
+    c_wl_proxy_marshal_region_destroy :: Ptr Region -> CInt -> IO ()
+
+foreign import ccall unsafe "wl_proxy_destroy"
+    c_wl_proxy_destroy :: Ptr Region -> IO ()
+
+foreign import ccall unsafe "display_get_compositor"
+    c_display_get_compositor :: Ptr Display -> IO (Ptr Compositor)
+
+c_wl_compositor_create_region :: Ptr Compositor -> IO (Ptr Region)
+c_wl_compositor_create_region compositor_ptr =
+    c_wl_proxy_marshal_compositor_create_region compositor_ptr #{const WL_COMPOSITOR_CREATE_REGION} nullPtr nullPtr
+
+c_wl_region_add :: Ptr Region -> CInt -> CInt -> CInt -> CInt -> IO ()
+c_wl_region_add region_ptr x y width height =
+    c_wl_proxy_marshal_region_add region_ptr #{const WL_REGION_ADD} x y width height
+
+c_wl_surface_set_input_region :: Ptr WlSurface -> Ptr Region -> IO ()
+c_wl_surface_set_input_region s_ptr region_ptr =
+    c_wl_proxy_marshal_surface_set_input_region s_ptr #{const WL_SURFACE_SET_INPUT_REGION} region_ptr
+
+c_wl_region_destroy :: Ptr Region -> IO ()
+c_wl_region_destroy region_ptr = do
+    c_wl_proxy_marshal_region_destroy region_ptr #{const WL_REGION_DESTROY}
+    c_wl_proxy_destroy region_ptr
 
 c_weston_desktop_shell_desktop_ready :: Ptr WestonDesktopShell -> IO ()
 c_weston_desktop_shell_desktop_ready ds_ptr =
