@@ -264,6 +264,15 @@ instance Storable Status where
         #{poke struct status, num_encoders} ptr (length encoders)
         #{poke struct status, encoders} ptr =<< newArray encoders
 
+data RegionInterface = RegionInterface { }
+instance Storable RegionInterface where
+    sizeOf _    = #{size struct wl_interface}
+    alignment _ = #{alignment struct wl_interface}
+    peek ptr = do
+        return RegionInterface
+    poke ptr RegionInterface = do
+        return ()
+
 foreign import ccall safe "cairo_destroy"
     c_cairo_destroy :: Ptr XP.Cairo -> IO ()
 
@@ -411,8 +420,8 @@ foreign import ccall unsafe "wl_proxy_get_user_data"
 foreign import ccall unsafe "wl_proxy_marshal"
     c_wl_proxy_marshal :: Ptr WestonDesktopShell -> CInt -> Ptr () -> Ptr () -> IO ()
 
-foreign import ccall unsafe "wl_proxy_marshal"
-    c_wl_proxy_marshal_compositor_create_region :: Ptr Compositor -> CInt -> Ptr () -> Ptr () -> IO (Ptr Region)
+foreign import ccall unsafe "wl_proxy_marshal_constructor"
+    c_wl_proxy_marshal_constructor_compositor_create_region :: Ptr Compositor -> CInt -> Ptr RegionInterface -> Ptr () -> IO (Ptr Region)
 
 foreign import ccall unsafe "wl_proxy_marshal"
     c_wl_proxy_marshal_region_add :: Ptr Region -> CInt -> CInt -> CInt -> CInt -> CInt -> IO ()
@@ -430,8 +439,9 @@ foreign import ccall unsafe "display_get_compositor"
     c_display_get_compositor :: Ptr Display -> IO (Ptr Compositor)
 
 c_wl_compositor_create_region :: Ptr Compositor -> IO (Ptr Region)
-c_wl_compositor_create_region compositor_ptr =
-    c_wl_proxy_marshal_compositor_create_region compositor_ptr #{const WL_COMPOSITOR_CREATE_REGION} nullPtr nullPtr
+c_wl_compositor_create_region compositor_ptr = do
+    mallocForeignPtr >>= \ri_fp -> withForeignPtr ri_fp $ \ri_ptr -> do
+        c_wl_proxy_marshal_constructor_compositor_create_region compositor_ptr #{const WL_COMPOSITOR_CREATE_REGION} ri_ptr nullPtr
 
 c_wl_region_add :: Ptr Region -> CInt -> CInt -> CInt -> CInt -> IO ()
 c_wl_region_add region_ptr x y width height =
