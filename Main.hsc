@@ -111,7 +111,6 @@ alertCreate display_ptr window_ptr = do
         c_widget_set_touch_down_handler widget_ptr =<< mkTouchDownHandlerForeign alertTouchDownHandler
         s_ptr <- c_widget_get_wl_surface widget_ptr
         region_ptr <- c_wl_compositor_create_region =<< c_display_get_compositor display_ptr
-        c_wl_region_add region_ptr 0 0 800 80
         c_wl_surface_set_input_region s_ptr region_ptr
         c_wl_region_destroy region_ptr
         c_display_watch_fd display_ptr check_fd epollin (#{ptr struct alert, check_task} alert_ptr)
