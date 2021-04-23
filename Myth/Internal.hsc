@@ -412,13 +412,10 @@ foreign import ccall unsafe "wl_proxy_get_user_data"
 foreign import ccall unsafe "wl_proxy_marshal"
     c_wl_proxy_marshal :: Ptr WestonDesktopShell -> CInt -> Ptr () -> Ptr () -> IO ()
 
-foreign import ccall unsafe "&wl_region_interface" c_wl_region_interface :: Ptr WlInterface
+foreign import ccall "&wl_region_interface" c_wl_region_interface :: Ptr WlInterface
 
 foreign import ccall unsafe "wl_proxy_marshal_constructor"
-    c_wl_proxy_marshal_constructor_compositor_create_region :: Ptr Compositor -> CInt -> Ptr WlInterface -> Ptr () -> IO (Ptr Region)
-
-foreign import ccall unsafe "wl_proxy_marshal"
-    c_wl_proxy_marshal_region_add :: Ptr Region -> CInt -> CInt -> CInt -> CInt -> CInt -> IO ()
+    c_wl_proxy_marshal_constructor :: Ptr Compositor -> CInt -> Ptr WlInterface -> Ptr () -> IO (Ptr Region)
 
 foreign import ccall unsafe "wl_proxy_marshal"
     c_wl_proxy_marshal_surface_set_input_region :: Ptr WlSurface -> CInt -> Ptr Region -> IO ()
@@ -434,11 +431,7 @@ foreign import ccall unsafe "display_get_compositor"
 
 c_wl_compositor_create_region :: Ptr Compositor -> IO (Ptr Region)
 c_wl_compositor_create_region compositor_ptr = do
-    c_wl_proxy_marshal_constructor_compositor_create_region compositor_ptr #{const WL_COMPOSITOR_CREATE_REGION} c_wl_region_interface nullPtr
-
-c_wl_region_add :: Ptr Region -> CInt -> CInt -> CInt -> CInt -> IO ()
-c_wl_region_add region_ptr x y width height =
-    c_wl_proxy_marshal_region_add region_ptr #{const WL_REGION_ADD} x y width height
+    c_wl_proxy_marshal_constructor compositor_ptr #{const WL_COMPOSITOR_CREATE_REGION} c_wl_region_interface nullPtr
 
 c_wl_surface_set_input_region :: Ptr WlSurface -> Ptr Region -> IO ()
 c_wl_surface_set_input_region s_ptr region_ptr =
