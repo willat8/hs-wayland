@@ -75,27 +75,27 @@ statusCreate display_ptr w h = do
 alertCheck t_ptr _ = do
     void . forkIO $ do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, check_task}
-    Alert widget_ptr check_fd _ _ <- peek alert_ptr
+    Alert widget_ptr check_fd _ _ _ <- peek alert_ptr
     fdRead check_fd #{size uint64_t}
     babyMonitorHealthy <- getBabyMonitorStatus
-    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = babyMonitorHealthy }
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = babyMonitorHealthy, showDashboard = False }
     unless babyMonitorHealthy $ c_widget_schedule_redraw widget_ptr
 
 alertResizeHandler _ _ _ d_ptr = do
-    Alert widget_ptr _ _ _ <- peek (castPtr d_ptr)
+    Alert widget_ptr _ _ _ _ <- peek (castPtr d_ptr)
     c_widget_set_allocation widget_ptr 0 0 800 80
 
 alertRedrawHandler _ d_ptr = do
-    Alert widget_ptr _ _ babyMonitorHealthy <- peek (castPtr d_ptr)
+    Alert widget_ptr _ _ babyMonitorHealthy showDashboard <- peek (castPtr d_ptr)
     xp <- c_widget_cairo_create widget_ptr
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
-    drawAlert xpsurface babyMonitorHealthy =<< c_widget_get_last_time widget_ptr
+    drawAlert xpsurface showDashboard babyMonitorHealthy =<< c_widget_get_last_time widget_ptr
     unless babyMonitorHealthy $ c_widget_schedule_redraw widget_ptr
 
 alertTouchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
     let alert_ptr = castPtr d_ptr
-    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = True }
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { showDashboard = True }
     return ()
 
 alertCreate display_ptr window_ptr = do
@@ -103,7 +103,7 @@ alertCreate display_ptr window_ptr = do
         widget_ptr <- c_window_add_subsurface window_ptr (castPtr alert_ptr) subsurfaceDesynchronized
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
         check_task <- Task <$> mkCheckTaskForeign alertCheck
-        poke alert_ptr (Alert widget_ptr check_fd check_task True)
+        poke alert_ptr (Alert widget_ptr check_fd check_task True False)
         redraw_funp <- mkRedrawHandlerForeign alertRedrawHandler
         resize_funp <- mkResizeHandlerForeign alertResizeHandler
         c_widget_set_redraw_handler widget_ptr redraw_funp

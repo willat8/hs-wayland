@@ -43,6 +43,7 @@ struct alert {
     int check_fd;
     struct task check_task;
     int baby_monitor;
+    int show_dashboard;
 };
 
 struct status {
