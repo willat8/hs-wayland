@@ -110,10 +110,12 @@ readFromPngStream file_ptr buffer_ptr count = do
   bytes_read <- M.c_fread buffer_ptr 1 count file_ptr
   return $ if (bytes_read /= count) then M.cairoStatusReadError else M.cairoStatusSuccess
 
+drawAlert surface True _ _     = renderWith surface $ do
+    drawGreen surface
 drawAlert surface _ True _     = renderWith surface $ do
     drawBlank surface
-drawAlert surface showDashboard False time = renderWith surface $ do
-    if showDashboard then drawGreen surface else drawBlank surface
+drawAlert surface False False time = renderWith surface $ do
+    drawBlank surface
     setOperator OperatorOver
     setSourceRGBA 1 0.2 0.2 0.6
     selectFontFace "sans-serif" FontSlantItalic FontWeightBold
