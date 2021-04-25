@@ -79,7 +79,7 @@ alertCheck t_ptr _ = do
     fdRead check_fd #{size uint64_t}
     babyMonitorHealthy <- getBabyMonitorStatus
     peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = babyMonitorHealthy, showDashboard = False }
-    unless (babyMonitorHealthy || showDashboard) $ c_widget_schedule_redraw widget_ptr
+    unless (babyMonitorHealthy || not showDashboard) $ c_widget_schedule_redraw widget_ptr
 
 alertResizeHandler _ _ _ d_ptr = do
     Alert widget_ptr _ _ _ _ <- peek (castPtr d_ptr)
