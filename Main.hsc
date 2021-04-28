@@ -73,7 +73,7 @@ statusCreate display_ptr w h = do
         return status_fp
 
 alertCheck t_ptr _ = do
-    void . forkIO $ do
+    --void . forkIO $ do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, check_task}
     Alert widget_ptr check_fd _ _ showDashboard <- peek alert_ptr
     fdRead check_fd #{size uint64_t}
