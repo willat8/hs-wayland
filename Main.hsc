@@ -61,7 +61,7 @@ statusCreate display_ptr w h = do
         window_ptr <- c_window_create display_ptr
         widget_ptr <- c_window_add_widget window_ptr $ castPtr status_ptr
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
-        check_task <- Task <$> mkCheckTaskForeign statusCheck
+        check_task <- Task <$> mkTimerTaskForeign statusCheck
         poke status_ptr (Status display_ptr window_ptr widget_ptr w h check_fd check_task True [])
         c_window_set_user_data window_ptr $ castPtr status_ptr
         alertCreate display_ptr window_ptr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
@@ -73,20 +73,27 @@ statusCreate display_ptr w h = do
         return status_fp
 
 alertCheck t_ptr _ = do
-    void . forkOS $ do
+    void . forkIO $ do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, check_task}
-    Alert widget_ptr check_fd _ _ showDashboard <- peek alert_ptr
+    Alert widget_ptr check_fd _ _ _ _ _ <- peek alert_ptr
     fdRead check_fd #{size uint64_t}
     babyMonitorHealthy <- getBabyMonitorStatus
-    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = babyMonitorHealthy, showDashboard = False }
-    unless (babyMonitorHealthy && not showDashboard) $ c_widget_schedule_redraw widget_ptr
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = babyMonitorHealthy }
+    unless babyMonitorHealthy $ c_widget_schedule_redraw widget_ptr
+
+alertHide t_ptr _ = do
+    let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, hide_task}
+    Alert widget_ptr _ _ hide_fd _ _ _ <- peek alert_ptr
+    fdRead hide_fd #{size uint64_t}
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { showDashboard = False }
+    c_widget_schedule_redraw widget_ptr
 
 alertResizeHandler _ _ _ d_ptr = do
-    Alert widget_ptr _ _ _ _ <- peek (castPtr d_ptr)
+    Alert widget_ptr _ _ _ _ _ _ <- peek (castPtr d_ptr)
     c_widget_set_allocation widget_ptr 0 0 800 80
 
 alertRedrawHandler _ d_ptr = do
-    Alert widget_ptr _ _ babyMonitorHealthy showDashboard <- peek (castPtr d_ptr)
+    Alert widget_ptr _ _ _ _ babyMonitorHealthy showDashboard <- peek (castPtr d_ptr)
     xp <- c_widget_cairo_create widget_ptr
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
@@ -95,16 +102,19 @@ alertRedrawHandler _ d_ptr = do
 
 alertTouchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
     let alert_ptr = castPtr d_ptr
-    Alert widget_ptr _ _ _ _ <- peek alert_ptr
+    Alert widget_ptr _ _ hide_fd _ _ _ <- peek alert_ptr
     peek alert_ptr >>= \alert -> poke alert_ptr alert { showDashboard = True }
+    with (ITimerSpec (TimeSpec 0 0) (TimeSpec 30 0)) $ \its_ptr -> c_timerfd_settime hide_fd 0 its_ptr nullPtr
     c_widget_schedule_redraw widget_ptr
 
 alertCreate display_ptr window_ptr = do
     mallocForeignPtr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
         widget_ptr <- c_window_add_subsurface window_ptr (castPtr alert_ptr) subsurfaceDesynchronized
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
-        check_task <- Task <$> mkCheckTaskForeign alertCheck
-        poke alert_ptr (Alert widget_ptr check_fd check_task True False)
+        check_task <- Task <$> mkTimerTaskForeign alertCheck
+        hide_fd <- c_timerfd_create clockMonotonic tfdCloexec
+        hide_task <- Task <$> mkTimerTaskForeign alertHide
+        poke alert_ptr (Alert widget_ptr check_fd check_task hide_fd hide_task True False)
         redraw_funp <- mkRedrawHandlerForeign alertRedrawHandler
         resize_funp <- mkResizeHandlerForeign alertResizeHandler
         c_widget_set_redraw_handler widget_ptr redraw_funp
@@ -115,10 +125,14 @@ alertCreate display_ptr window_ptr = do
         c_wl_surface_set_input_region s_ptr region_ptr
         c_wl_region_destroy region_ptr
         c_display_watch_fd display_ptr check_fd epollin (#{ptr struct alert, check_task} alert_ptr)
+        c_display_watch_fd display_ptr hide_fd epollin (#{ptr struct alert, hide_task} alert_ptr)
         with (ITimerSpec (TimeSpec 30 0) (TimeSpec 1 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
+        with (ITimerSpec (TimeSpec 0 0) (TimeSpec 0 0)) $ \its_ptr -> c_timerfd_settime hide_fd 0 its_ptr nullPtr
         FC.addForeignPtrFinalizer alert_fp $ do
             c_display_unwatch_fd display_ptr check_fd
+            c_display_unwatch_fd display_ptr hide_fd
             closeFd check_fd
+            closeFd hide_fd
             freeHaskellFunPtr redraw_funp
             freeHaskellFunPtr resize_funp
             c_widget_destroy widget_ptr

@@ -205,6 +205,8 @@ instance Storable Encoder where
 data Alert = Alert { alertWidget      :: Ptr Widget
                    , alertCheckFd     :: Fd
                    , alertCheckTask   :: Task
+                   , alertHideFd      :: Fd
+                   , alertHideTask    :: Task
                    , alertBabyMonitor :: Bool
                    , showDashboard    :: Bool
                    }
@@ -215,13 +217,17 @@ instance Storable Alert where
         widget_ptr <- #{peek struct alert, widget} ptr
         check_fd <- #{peek struct alert, check_fd} ptr
         check_task <- #{peek struct alert, check_task} ptr
+        hide_fd <- #{peek struct alert, hide_fd} ptr
+        hide_task <- #{peek struct alert, hide_task} ptr
         baby_monitor <- #{peek struct alert, baby_monitor} ptr
         show_dashboard <- #{peek struct alert, show_dashboard} ptr
-        return (Alert widget_ptr check_fd check_task baby_monitor show_dashboard)
-    poke ptr (Alert widget_ptr check_fd check_task baby_monitor show_dashboard) = do
+        return (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor show_dashboard)
+    poke ptr (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor show_dashboard) = do
         #{poke struct alert, widget} ptr widget_ptr
         #{poke struct alert, check_fd} ptr check_fd
         #{poke struct alert, check_task} ptr check_task
+        #{poke struct alert, hide_fd} ptr hide_fd
+        #{poke struct alert, hide_task} ptr hide_task
         #{poke struct alert, baby_monitor} ptr baby_monitor
         #{poke struct alert, show_dashboard} ptr show_dashboard
 
@@ -462,7 +468,7 @@ c_weston_desktop_shell_set_grab_surface ds_ptr s_ptr =
     c_wl_proxy_marshal ds_ptr #{const WESTON_DESKTOP_SHELL_SET_GRAB_SURFACE} (castPtr s_ptr) nullPtr
 
 foreign import ccall unsafe "wrapper"
-    mkCheckTaskForeign ::            (Ptr Task -> Word32 -> IO ()) ->
+    mkTimerTaskForeign ::            (Ptr Task -> Word32 -> IO ()) ->
                           IO (FunPtr (Ptr Task -> Word32 -> IO ()))
 
 foreign import ccall unsafe "wrapper"

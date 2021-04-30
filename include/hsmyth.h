@@ -42,6 +42,8 @@ struct alert {
     struct widget *widget;
     int check_fd;
     struct task check_task;
+    int hide_fd;
+    struct task hide_task;
     int baby_monitor;
     int show_dashboard;
 };
