@@ -4,5 +4,5 @@ First ensure the system has been booted with `/etc/binfmt.d/qemu-aarch64-static.
 
 Build on x86 with
 
-    docker run --rm -v $(pwd):/usr/src/hs-wayland -w /usr/src/hs-wayland willat8/wayland-hs-buildenv-debian-rpi3:20170720 make
+    docker run --rm -v $(pwd):/usr/src/hs-wayland -w /usr/src/hs-wayland willat8/hs-wayland-buildenv:20210501 make
 
