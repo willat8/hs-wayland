@@ -3,11 +3,13 @@
 module Myth.Alert (getBabyMonitorStatus) where
 import Myth.Common
 import qualified Data.ByteString as B
+import Data.Bits.Bitwise
 
+getBabyMonitorStatus :: IO (Int)
 getBabyMonitorStatus = do
     poem <- getUrl "http://poem:4714/status"
     bard <- getUrl "http://bard:4714/status"
-    return ((count "state: RUNNING" poem) == 8 && (count "state: RUNNING" bard) == 2)
+    return . fromListLE $ [(count "state: RUNNING" poem) == 8, (count "state: RUNNING" bard) == 2]
 
 -- Count the number of substrings in a ByteString
 count "" _      = 0

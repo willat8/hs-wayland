@@ -207,7 +207,7 @@ data Alert = Alert { alertWidget      :: Ptr Widget
                    , alertCheckTask   :: Task
                    , alertHideFd      :: Fd
                    , alertHideTask    :: Task
-                   , alertBabyMonitor :: Bool
+                   , alertBabyMonitor :: Int
                    , showDashboard    :: Bool
                    }
 instance Storable Alert where

@@ -79,7 +79,7 @@ alertCheck t_ptr _ = do
     fdRead check_fd #{size uint64_t}
     babyMonitorHealthy <- getBabyMonitorStatus
     peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = babyMonitorHealthy }
-    unless babyMonitorHealthy $ c_widget_schedule_redraw widget_ptr
+    unless (babyMonitorHealthy < 3) $ c_widget_schedule_redraw widget_ptr
 
 alertHide t_ptr _ = do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, hide_task}
@@ -98,7 +98,7 @@ alertRedrawHandler _ d_ptr = do
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
     drawAlert xpsurface showDashboard babyMonitorHealthy =<< c_widget_get_last_time widget_ptr
-    unless babyMonitorHealthy $ c_widget_schedule_redraw widget_ptr
+    unless (babyMonitorHealthy < 3) $ c_widget_schedule_redraw widget_ptr
 
 alertTouchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
     let alert_ptr = castPtr d_ptr
@@ -114,7 +114,7 @@ alertCreate display_ptr window_ptr = do
         check_task <- Task <$> mkTimerTaskForeign alertCheck
         hide_fd <- c_timerfd_create clockMonotonic tfdCloexec
         hide_task <- Task <$> mkTimerTaskForeign alertHide
-        poke alert_ptr (Alert widget_ptr check_fd check_task hide_fd hide_task True False)
+        poke alert_ptr (Alert widget_ptr check_fd check_task hide_fd hide_task 0 False)
         redraw_funp <- mkRedrawHandlerForeign alertRedrawHandler
         resize_funp <- mkResizeHandlerForeign alertResizeHandler
         c_widget_set_redraw_handler widget_ptr redraw_funp
