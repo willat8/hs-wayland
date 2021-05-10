@@ -77,9 +77,9 @@ alertCheck t_ptr _ = do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, check_task}
     Alert widget_ptr check_fd _ _ _ _ _ <- peek alert_ptr
     fdRead check_fd #{size uint64_t}
-    babyMonitorHealthy <- getBabyMonitorStatus
-    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = babyMonitorHealthy }
-    unless (babyMonitorHealthy < 3) $ c_widget_schedule_redraw widget_ptr
+    babyMonitorHealth <- getBabyMonitorStatus
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = babyMonitorHealth }
+    unless (babyMonitorHealth == healthy) $ c_widget_schedule_redraw widget_ptr
 
 alertHide t_ptr _ = do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, hide_task}
@@ -93,12 +93,12 @@ alertResizeHandler _ _ _ d_ptr = do
     c_widget_set_allocation widget_ptr 0 0 800 80
 
 alertRedrawHandler _ d_ptr = do
-    Alert widget_ptr _ _ _ _ babyMonitorHealthy showDashboard <- peek (castPtr d_ptr)
+    Alert widget_ptr _ _ _ _ babyMonitorHealth showDashboard <- peek (castPtr d_ptr)
     xp <- c_widget_cairo_create widget_ptr
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
-    drawAlert xpsurface showDashboard babyMonitorHealthy =<< c_widget_get_last_time widget_ptr
-    unless (babyMonitorHealthy < 3) $ c_widget_schedule_redraw widget_ptr
+    drawAlert xpsurface showDashboard babyMonitorHealth =<< c_widget_get_last_time widget_ptr
+    unless (babyMonitorHealth == healthy) $ c_widget_schedule_redraw widget_ptr
 
 alertTouchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
     let alert_ptr = castPtr d_ptr
