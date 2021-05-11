@@ -44,7 +44,7 @@ struct alert {
     struct task check_task;
     int hide_fd;
     struct task hide_task;
-    int baby_monitor;
+    int baby_monitor_health;
     int show_dashboard;
 };
 

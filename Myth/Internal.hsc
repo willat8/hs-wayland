@@ -202,13 +202,13 @@ instance Storable Encoder where
         #{poke struct encoder, recording_title} ptr =<< newCString recording_title
         #{poke struct encoder, channel_icon} ptr =<< newStablePtr channel_icon
 
-data Alert = Alert { alertWidget      :: Ptr Widget
-                   , alertCheckFd     :: Fd
-                   , alertCheckTask   :: Task
-                   , alertHideFd      :: Fd
-                   , alertHideTask    :: Task
-                   , alertBabyMonitor :: Int
-                   , showDashboard    :: Bool
+data Alert = Alert { alertWidget            :: Ptr Widget
+                   , alertCheckFd           :: Fd
+                   , alertCheckTask         :: Task
+                   , alertHideFd            :: Fd
+                   , alertHideTask          :: Task
+                   , alertBabyMonitorHealth :: Int
+                   , alertShowDashboard     :: Bool
                    }
 instance Storable Alert where
     sizeOf _    = #{size struct alert}
@@ -219,16 +219,16 @@ instance Storable Alert where
         check_task <- #{peek struct alert, check_task} ptr
         hide_fd <- #{peek struct alert, hide_fd} ptr
         hide_task <- #{peek struct alert, hide_task} ptr
-        baby_monitor <- #{peek struct alert, baby_monitor} ptr
+        baby_monitor_health <- #{peek struct alert, baby_monitor_health} ptr
         show_dashboard <- #{peek struct alert, show_dashboard} ptr
-        return (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor show_dashboard)
-    poke ptr (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor show_dashboard) = do
+        return (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health show_dashboard)
+    poke ptr (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health show_dashboard) = do
         #{poke struct alert, widget} ptr widget_ptr
         #{poke struct alert, check_fd} ptr check_fd
         #{poke struct alert, check_task} ptr check_task
         #{poke struct alert, hide_fd} ptr hide_fd
         #{poke struct alert, hide_task} ptr hide_task
-        #{poke struct alert, baby_monitor} ptr baby_monitor
+        #{poke struct alert, baby_monitor_health} ptr baby_monitor_health
         #{poke struct alert, show_dashboard} ptr show_dashboard
 
 data Status = Status { statusDisplay     :: Ptr Display

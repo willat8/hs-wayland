@@ -78,14 +78,14 @@ alertCheck t_ptr _ = do
     Alert widget_ptr check_fd _ _ _ _ _ <- peek alert_ptr
     fdRead check_fd #{size uint64_t}
     babyMonitorHealth <- getBabyMonitorStatus
-    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitor = babyMonitorHealth }
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitorHealth = babyMonitorHealth }
     unless (babyMonitorHealth == healthy) $ c_widget_schedule_redraw widget_ptr
 
 alertHide t_ptr _ = do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, hide_task}
     Alert widget_ptr _ _ hide_fd _ _ _ <- peek alert_ptr
     fdRead hide_fd #{size uint64_t}
-    peek alert_ptr >>= \alert -> poke alert_ptr alert { showDashboard = False }
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = False }
     c_widget_schedule_redraw widget_ptr
 
 alertResizeHandler _ _ _ d_ptr = do
@@ -103,7 +103,7 @@ alertRedrawHandler _ d_ptr = do
 alertTouchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
     let alert_ptr = castPtr d_ptr
     Alert widget_ptr _ _ hide_fd _ _ _ <- peek alert_ptr
-    peek alert_ptr >>= \alert -> poke alert_ptr alert { showDashboard = True }
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = True }
     with (ITimerSpec (TimeSpec 0 0) (TimeSpec 30 0)) $ \its_ptr -> c_timerfd_settime hide_fd 0 its_ptr nullPtr
     c_widget_schedule_redraw widget_ptr
 
