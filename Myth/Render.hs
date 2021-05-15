@@ -146,7 +146,7 @@ drawDashboard babyMonitorHealth = do
     drawBlank
     setOperator OperatorOver
     scale 0.1 0.1
-    translate 1000 0
+    translate 950 0
     drawBabyIcon $ if (microphoneUnhealthy || speakerUnhealthy) then "red" else "green"
     save
     translate 400 75
@@ -155,13 +155,13 @@ drawDashboard babyMonitorHealth = do
     translate 0 500
     drawSpeakerIcon $ if (speakerUnhealthy) then "red" else "green"
     restore
-    translate 1000 0
+    translate 1400 0
     drawDockerIcon "white"
-    translate 1000 0
+    translate 1400 0
     drawBroadcastTowerIcon "white"
-    translate 1000 0
+    translate 1400 0
     drawRaspberryPiIcon "white"
-    translate 1000 0
+    translate 1400 0
     drawLightbulbIcon "white"
     return ()
 
