@@ -126,7 +126,7 @@ alertCreate display_ptr window_ptr = do
         c_wl_region_destroy region_ptr
         c_display_watch_fd display_ptr check_fd epollin (#{ptr struct alert, check_task} alert_ptr)
         c_display_watch_fd display_ptr hide_fd epollin (#{ptr struct alert, hide_task} alert_ptr)
-        with (ITimerSpec (TimeSpec 30 0) (TimeSpec 1 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
+        with (ITimerSpec (TimeSpec 150 0) (TimeSpec 30 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
         with (ITimerSpec (TimeSpec 0 0) (TimeSpec 0 0)) $ \its_ptr -> c_timerfd_settime hide_fd 0 its_ptr nullPtr
         FC.addForeignPtrFinalizer alert_fp $ do
             c_display_unwatch_fd display_ptr check_fd
