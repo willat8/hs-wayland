@@ -20,7 +20,7 @@ getBabyMonitorStatus = do
     return . fromListLE $ [(count "state: RUNNING" poem) /= 8, (count "state: RUNNING" bard) /= 2]
 
 parseHDHomeRunStatus = withArray "TunerList" $ \a ->
-    pure a >>= return . length . V.toList
+    pure a >>= (mapM $ withObject "Tuner" (.: "Resource") :: [Value] -> Parser [String]) . (V.toList) >>= return . length
 
 getHDHomeRunStatus :: IO (Int)
 getHDHomeRunStatus = do
