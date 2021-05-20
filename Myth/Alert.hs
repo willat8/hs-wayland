@@ -19,8 +19,7 @@ getBabyMonitorStatus = do
     bard <- getUrl "http://bard:4714/status"
     return . fromListLE $ [(count "state: RUNNING" poem) /= 8, (count "state: RUNNING" bard) /= 2]
 
-parseHDHomeRunStatus = withArray "TunerList" $ \a ->
-    pure a >>= (mapM $ withObject "Tuner" (.: "Resource") :: [Value] -> Parser [String]) . (V.toList) >>= return . length
+parseHDHomeRunStatus = withArray "TunerList" $ do return . length
 
 getHDHomeRunStatus :: IO (Int)
 getHDHomeRunStatus = do
