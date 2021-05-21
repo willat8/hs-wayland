@@ -19,18 +19,17 @@ getBabyMonitorStatus = do
     bard <- getUrl "http://bard:4714/status"
     return . fromListLE $ [(count "state: RUNNING" poem) /= 8, (count "state: RUNNING" bard) /= 2]
 
-parseHDHomeRunStatus = withArray "TunerList" $ do return . length
+parseHDHomeRunStatus = withArray "TunerList" $ do return . (==4) . length
 
-getHDHomeRunStatus :: IO (Int)
 getHDHomeRunStatus = do
     req <- parseRequest "http://hdhomerun/status.json" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
 
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
-    status <- case eres of Right res -> return tunerCount
+    status <- case eres of Right res -> return isHealthy
                                         where body = getResponseBody res
-                                              Success tunerCount = parse parseHDHomeRunStatus body
-                           _         -> return 0
+                                              Success isHealthy = parse parseHDHomeRunStatus body
+                           _         -> return False
 
     return status
 

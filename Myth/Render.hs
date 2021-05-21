@@ -113,11 +113,11 @@ readFromPngStream file_ptr buffer_ptr count = do
   bytes_read <- M.c_fread buffer_ptr 1 count file_ptr
   return $ if (bytes_read /= count) then M.cairoStatusReadError else M.cairoStatusSuccess
 
-drawAlert surface showDashboard@True babyMonitorHealth _ = renderWith surface $ do
-    drawDashboard babyMonitorHealth
-drawAlert surface showDashboard@False babyMonitorHealth time
-    | babyMonitorHealth == healthy = renderWith surface $ do drawBlank
-    | otherwise                    = renderWith surface $ do drawMarquee time
+drawAlert surface showDashboard@True babyMonitorHealth isHDHomeRunHealthy _ = renderWith surface $ do
+    drawDashboard babyMonitorHealth isHDHomeRunHealthy
+drawAlert surface showDashboard@False babyMonitorHealth isHDHomeRunHealthy time
+    | babyMonitorHealth == healthy && isHDHomeRunHealthy = renderWith surface $ do drawBlank
+    | otherwise                                          = renderWith surface $ do drawMarquee time
 
 drawBlank = do
     setOperator OperatorSource
@@ -141,7 +141,7 @@ drawMarquee time = do
     moveTo (x + 30) y
     showText "Alert!"
 
-drawDashboard babyMonitorHealth = do
+drawDashboard babyMonitorHealth isHDHomeRunHealthy = do
     let microphoneUnhealthy:speakerUnhealthy:_ = toListLE babyMonitorHealth
     drawBlank
     setOperator OperatorOver
@@ -158,7 +158,7 @@ drawDashboard babyMonitorHealth = do
     translate 1400 0
     drawDockerIcon "white"
     translate 1400 0
-    drawBroadcastTowerIcon "white"
+    drawBroadcastTowerIcon $ if (isHDHomeRunHealthy) then "green" else "red"
     translate 1400 0
     drawRaspberryPiIcon "white"
     translate 1400 0
