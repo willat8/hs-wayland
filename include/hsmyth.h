@@ -1,4 +1,5 @@
 #include <HsFFI.h>
+#include <stdbool.h>
 #include "window.h"
 #include "weston-desktop-shell-client-protocol.h"
 
@@ -45,7 +46,7 @@ struct alert {
     int hide_fd;
     struct task hide_task;
     int baby_monitor_health;
-    int hdhomerun_health;
+    bool hdhomerun_health;
     int show_dashboard;
 };
 
