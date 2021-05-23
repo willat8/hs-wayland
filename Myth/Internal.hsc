@@ -210,7 +210,7 @@ data Alert = Alert { alertWidget            :: Ptr Widget
                    , alertCheckTask         :: Task
                    , alertHideFd            :: Fd
                    , alertHideTask          :: Task
-                   , alertBabyMonitorHealth :: Int
+                   , alertBabyMonitorHealth :: CInt
                    , alertHDHomeRunHealth   :: Bool
                    , alertShowDashboard     :: Bool
                    }
