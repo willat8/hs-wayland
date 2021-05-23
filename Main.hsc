@@ -115,7 +115,7 @@ alertCreate display_ptr window_ptr = do
         check_task <- Task <$> mkTimerTaskForeign alertCheck
         hide_fd <- c_timerfd_create clockMonotonic tfdCloexec
         hide_task <- Task <$> mkTimerTaskForeign alertHide
-        poke alert_ptr (Alert widget_ptr check_fd check_task hide_fd hide_task healthy True False)
+        poke alert_ptr (Alert widget_ptr check_fd check_task hide_fd hide_task 0 True False)
         redraw_funp <- mkRedrawHandlerForeign alertRedrawHandler
         resize_funp <- mkResizeHandlerForeign alertResizeHandler
         c_widget_set_redraw_handler widget_ptr redraw_funp

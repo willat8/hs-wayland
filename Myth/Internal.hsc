@@ -8,7 +8,6 @@ import Foreign.C.Types
 import qualified Graphics.Rendering.Cairo.Types as XP
 import System.Posix.Types
 
-#include <stdbool.h>
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
 #include <wayland-client.h>
@@ -43,8 +42,6 @@ newtype CairoStatus = CairoStatus { unCairoStatus :: CInt }
 newtype SubsurfaceMode = SubsurfaceMode { unSubsurfaceMode :: CInt }
     deriving (Eq,Show)
 #enum SubsurfaceMode, SubsurfaceMode, SUBSURFACE_SYNCHRONIZED, SUBSURFACE_DESYNCHRONIZED
-
-type CBool = #{type bool}
 
 data WlOutputInterface
 foreign import ccall unsafe "&wl_output_interface"
@@ -224,7 +221,7 @@ instance Storable Alert where
         hide_fd <- #{peek struct alert, hide_fd} ptr
         hide_task <- #{peek struct alert, hide_task} ptr
         baby_monitor_health <- #{peek struct alert, baby_monitor_health} ptr
-        hdhomerun_health <- (toBool :: CBool -> Bool) <$> #{peek struct alert, hdhomerun_health} ptr
+        hdhomerun_health <- #{peek struct alert, hdhomerun_health} ptr
         show_dashboard <- #{peek struct alert, show_dashboard} ptr
         return (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health show_dashboard)
     poke ptr (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health show_dashboard) = do
@@ -234,7 +231,7 @@ instance Storable Alert where
         #{poke struct alert, hide_fd} ptr hide_fd
         #{poke struct alert, hide_task} ptr hide_task
         #{poke struct alert, baby_monitor_health} ptr baby_monitor_health
-        #{poke struct alert, hdhomerun_health} ptr $ (fromBool :: Bool -> CBool) hdhomerun_health
+        #{poke struct alert, hdhomerun_health} ptr hdhomerun_health
         #{poke struct alert, show_dashboard} ptr show_dashboard
 
 data Status = Status { statusDisplay     :: Ptr Display
