@@ -11,9 +11,10 @@ import qualified Data.Vector as V
 import Control.Exception (try)
 import Foreign.C.Types
 
+healthy :: CInt
 healthy = 0
 
-getBabyMonitorStatus :: IO (Integer)
+getBabyMonitorStatus :: IO (CInt)
 getBabyMonitorStatus = do
     poem <- getUrl "http://poem:4714/status"
     bard <- getUrl "http://bard:4714/status"
