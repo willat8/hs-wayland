@@ -9,12 +9,10 @@ import Network.HTTP.Client
 import Data.Aeson.Types
 import qualified Data.Vector as V
 import Control.Exception (try)
-import Foreign.C.Types
 
-healthy :: CInt
-healthy = 0
+healthy = 0 :: Int
 
-getBabyMonitorStatus :: IO (CInt)
+getBabyMonitorStatus :: IO (Int)
 getBabyMonitorStatus = do
     poem <- getUrl "http://poem:4714/status"
     bard <- getUrl "http://bard:4714/status"
