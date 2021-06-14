@@ -46,6 +46,7 @@ struct alert {
     struct task hide_task;
     int baby_monitor_health;
     int hdhomerun_health;
+    int mythtv_health;
     int show_dashboard;
 };
 

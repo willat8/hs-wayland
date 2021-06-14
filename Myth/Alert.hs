@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Myth.Alert (healthy, getBabyMonitorStatus, getHDHomeRunStatus) where
+module Myth.Alert (healthy, getBabyMonitorStatus, getHDHomeRunStatus, getMythTVStatus) where
 import Myth.Common
 import qualified Data.ByteString as B
 import Data.Bits.Bitwise
@@ -31,6 +31,22 @@ getHDHomeRunStatus = do
                            _         -> return False
 
     return status
+
+parseMythTVStatus = withObject "SettingList" $ \o ->
+    pure o >>= (.: "Settings") >>= (.: "mythfilldatabaseLastRunStatus") >>= return . ((== "Successful.") :: String -> Bool)
+
+getMythTVStatus = do
+    diskstatus <- (== "all pools are healthy") <$> getUrl "http://rancher/"
+    req <- parseRequest "http://rancher:6544/Myth/GetSettingList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
+
+    eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
+
+    status <- case eres of Right res -> return isHealthy
+                                        where body = getResponseBody res
+                                              Success isHealthy = parse parseMythTVStatus body
+                           _         -> return False
+
+    return (diskstatus && status)
 
 -- Count the number of substrings in a ByteString
 count "" _      = 0

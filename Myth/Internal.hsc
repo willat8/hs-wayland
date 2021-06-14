@@ -209,6 +209,7 @@ data Alert = Alert { alertWidget            :: Ptr Widget
                    , alertHideTask          :: Task
                    , alertBabyMonitorHealth :: Int
                    , alertHDHomeRunHealth   :: Bool
+                   , alertMythTVHealth      :: Bool
                    , alertShowDashboard     :: Bool
                    }
 instance Storable Alert where
@@ -222,9 +223,10 @@ instance Storable Alert where
         hide_task <- #{peek struct alert, hide_task} ptr
         baby_monitor_health <- (fromIntegral :: CInt -> Int) <$> #{peek struct alert, baby_monitor_health} ptr
         hdhomerun_health <- #{peek struct alert, hdhomerun_health} ptr
+        mythtv_health <- #{peek struct alert, mythtv_health} ptr
         show_dashboard <- #{peek struct alert, show_dashboard} ptr
-        return (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health show_dashboard)
-    poke ptr (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health show_dashboard) = do
+        return (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health show_dashboard)
+    poke ptr (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health show_dashboard) = do
         #{poke struct alert, widget} ptr widget_ptr
         #{poke struct alert, check_fd} ptr check_fd
         #{poke struct alert, check_task} ptr check_task
@@ -232,6 +234,7 @@ instance Storable Alert where
         #{poke struct alert, hide_task} ptr hide_task
         #{poke struct alert, baby_monitor_health} ptr (fromIntegral baby_monitor_health :: CInt)
         #{poke struct alert, hdhomerun_health} ptr hdhomerun_health
+        #{poke struct alert, mythtv_health} ptr mythtv_health
         #{poke struct alert, show_dashboard} ptr show_dashboard
 
 data Status = Status { statusDisplay     :: Ptr Display
