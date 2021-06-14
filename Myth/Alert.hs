@@ -3,7 +3,9 @@
 module Myth.Alert (healthy, getBabyMonitorStatus, getHDHomeRunStatus, getMythTVStatus) where
 import Myth.Common
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
 import Data.Bits.Bitwise
+import Data.Char (isSpace)
 import Network.HTTP.Simple
 import Network.HTTP.Client
 import Data.Aeson.Types
@@ -36,7 +38,7 @@ parseMythTVStatus = withObject "SettingList" $ \o ->
     pure o >>= (.: "Settings") >>= (.: "mythfilldatabaseLastRunStatus") >>= return . ((== "Successful.") :: String -> Bool)
 
 getMythTVStatus = do
-    diskstatus <- (== "all pools are healthy") <$> getUrl "http://rancher/"
+    diskstatus <- ((== "all pools are healthy") . trim) <$> getUrl "http://rancher/"
     req <- parseRequest "http://rancher:6544/Myth/GetSettingList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
 
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
@@ -52,4 +54,6 @@ getMythTVStatus = do
 count "" _      = 0
 count search bs = if B.null t then 0 else 1 + count search (B.drop (B.length search) t)
     where (h,t) = B.breakSubstring search bs
+
+trim = C.reverse . C.dropWhile isSpace . C.reverse
 

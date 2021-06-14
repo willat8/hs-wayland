@@ -81,7 +81,7 @@ alertCheck t_ptr _ = do
     isHDHomeRunHealthy <- getHDHomeRunStatus
     isMythTVHealthy <- getMythTVStatus
     peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitorHealth = babyMonitorHealth, alertHDHomeRunHealth = isHDHomeRunHealthy, alertMythTVHealth = isMythTVHealthy  }
-    unless (babyMonitorHealth == healthy && isHDHomeRunHealthy) $ c_widget_schedule_redraw widget_ptr
+    unless (babyMonitorHealth == healthy && isHDHomeRunHealthy && isMythTVHealthy) $ c_widget_schedule_redraw widget_ptr
 
 alertHide t_ptr _ = do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, hide_task}
@@ -100,7 +100,7 @@ alertRedrawHandler _ d_ptr = do
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
     drawAlert xpsurface showDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy =<< c_widget_get_last_time widget_ptr
-    unless (babyMonitorHealth == healthy && isHDHomeRunHealthy) $ c_widget_schedule_redraw widget_ptr
+    unless (babyMonitorHealth == healthy && isHDHomeRunHealthy && isMythTVHealthy) $ c_widget_schedule_redraw widget_ptr
 
 alertTouchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
     let alert_ptr = castPtr d_ptr
