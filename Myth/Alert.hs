@@ -1,11 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Myth.Alert (healthy, getBabyMonitorStatus, getHDHomeRunStatus, getMythTVStatus) where
+module Myth.Alert (healthy, getBabyMonitorStatus, getHDHomeRunStatus, getMythTVStatus, getPiholeStatus, getHueStatus) where
 import Myth.Common
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
 import Data.Bits.Bitwise
 import Data.Char (isSpace)
+import qualified Data.HashMap.Strict as HashMap
 import Network.HTTP.Simple
 import Network.HTTP.Client
 import Data.Aeson.Types
@@ -49,6 +50,36 @@ getMythTVStatus = do
                            _         -> return False
 
     return (diskstatus && status)
+
+parsePiholeStatus = withObject "Summary" $ \o ->
+    pure o >>= (.: "status") >>= return . ((== "enabled") :: String -> Bool)
+
+getPiholeStatus = do
+    req <- parseRequest "http://pi.hole/admin/api.php" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
+
+    eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
+
+    status <- case eres of Right res -> return isHealthy
+                                        where body = getResponseBody res
+                                              Success isHealthy = parse parsePiholeStatus body
+                           _         -> return False
+
+    return status
+
+parseHueStatus = withObject "lights" $ \o ->
+    pure o >>= return . (== 6) . length . HashMap.toList
+
+getHueStatus = do
+    req <- parseRequest "http://philips-hue.lan/api/jJzAag3LO9O49xLU8JK4CmwLzt8T5m7ZdR0rAXus/lights" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
+
+    eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
+
+    status <- case eres of Right res -> return isHealthy
+                                        where body = getResponseBody res
+                                              Success isHealthy = parse parseHueStatus body
+                           _         -> return False
+
+    return status
 
 -- Count the number of substrings in a ByteString
 count "" _      = 0

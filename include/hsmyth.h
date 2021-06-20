@@ -47,6 +47,8 @@ struct alert {
     int baby_monitor_health;
     int hdhomerun_health;
     int mythtv_health;
+    int pihole_health;
+    int hue_health;
     int show_dashboard;
 };
 
