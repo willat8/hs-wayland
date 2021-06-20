@@ -4,7 +4,7 @@ module Myth.Alert (healthy, getBabyMonitorStatus, getHDHomeRunStatus, getMythTVS
 import Myth.Common
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
-import Data.Bits.Bitwise
+import Data.Bits.Bitwise hiding (all)
 import Data.Char (isSpace)
 import qualified Data.HashMap.Strict as HashMap
 import Network.HTTP.Simple
@@ -67,7 +67,7 @@ getPiholeStatus = do
     return status
 
 parseHueStatus = withObject "lights" $ \o ->
-    pure o >>= return . (== 6) . length . HashMap.toList
+    HashMap.traverseWithKey (\_ v -> withObject "light" (\l -> pure l >>= (.: "state") >>= (.: "reachable")) v) o >>= return . (all id)
 
 getHueStatus = do
     req <- parseRequest "http://philips-hue.lan/api/jJzAag3LO9O49xLU8JK4CmwLzt8T5m7ZdR0rAXus/lights" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
