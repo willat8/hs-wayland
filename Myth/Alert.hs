@@ -35,8 +35,8 @@ getHDHomeRunStatus = do
 
     return status
 
-parseMythTVStatus = withObject "SettingList" $ \o ->
-    pure o >>= (.: "Settings") >>= (.: "mythfilldatabaseLastRunStatus") >>= return . ((== "Successful.") :: String -> Bool)
+parseMythTVStatus = withObject "GetSettingList" $ \o ->
+    pure o >>= (.: "SettingList") >>= (.: "Settings") >>= (.: "mythfilldatabaseLastRunStatus") >>= return . ((== "Successful.") :: String -> Bool)
 
 getMythTVStatus = do
     diskstatus <- ((== "all pools are healthy") . trim) <$> getUrl "http://rancher/"
@@ -67,8 +67,9 @@ getPiholeStatus = do
     return status
 
 parseHueStatus = withObject "lights" $ \o ->
-    HashMap.traverseWithKey (\_ v -> withObject "light" (\l -> pure l >>= (.: "state") >>= (.: "reachable")) v) o >>= return . (all id)
+    HashMap.traverseWithKey (\_ v -> withObject "light" (\l -> pure l >>= (.: "state") >>= (.: "reachable")) v) o >>= return . (foldr (\c l -> (if c then 0 else 1) + l) 0) . HashMap.elems
 
+getHueStatus :: IO (Int)
 getHueStatus = do
     req <- parseRequest "http://philips-hue.lan/api/jJzAag3LO9O49xLU8JK4CmwLzt8T5m7ZdR0rAXus/lights" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
 
@@ -77,7 +78,7 @@ getHueStatus = do
     status <- case eres of Right res -> return isHealthy
                                         where body = getResponseBody res
                                               Success isHealthy = parse parseHueStatus body
-                           _         -> return False
+                           _         -> return (-1) -- Unhealthy
 
     return status
 

@@ -211,7 +211,7 @@ data Alert = Alert { alertWidget            :: Ptr Widget
                    , alertHDHomeRunHealth   :: Bool
                    , alertMythTVHealth      :: Bool
                    , alertPiholeHealth      :: Bool
-                   , alertHueHealth         :: Bool
+                   , alertHueHealth         :: Int
                    , alertShowDashboard     :: Bool
                    }
 instance Storable Alert where
@@ -227,7 +227,7 @@ instance Storable Alert where
         hdhomerun_health <- #{peek struct alert, hdhomerun_health} ptr
         mythtv_health <- #{peek struct alert, mythtv_health} ptr
         pihole_health <- #{peek struct alert, pihole_health} ptr
-        hue_health <- #{peek struct alert, hue_health} ptr
+        hue_health <- (fromIntegral :: CInt -> Int) <$> #{peek struct alert, hue_health} ptr
         show_dashboard <- #{peek struct alert, show_dashboard} ptr
         return (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health pihole_health hue_health show_dashboard)
     poke ptr (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health pihole_health hue_health show_dashboard) = do
@@ -240,7 +240,7 @@ instance Storable Alert where
         #{poke struct alert, hdhomerun_health} ptr hdhomerun_health
         #{poke struct alert, mythtv_health} ptr mythtv_health
         #{poke struct alert, pihole_health} ptr pihole_health
-        #{poke struct alert, hue_health} ptr hue_health
+        #{poke struct alert, hue_health} ptr (fromIntegral hue_health :: CInt)
         #{poke struct alert, show_dashboard} ptr show_dashboard
 
 data Status = Status { statusDisplay     :: Ptr Display

@@ -81,9 +81,9 @@ alertCheck t_ptr _ = do
     isHDHomeRunHealthy <- getHDHomeRunStatus
     isMythTVHealthy <- getMythTVStatus
     isPiholeHealthy <- getPiholeStatus
-    isHueHealthy <- getHueStatus
-    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitorHealth = babyMonitorHealth, alertHDHomeRunHealth = isHDHomeRunHealthy, alertMythTVHealth = isMythTVHealthy, alertPiholeHealth = isPiholeHealthy, alertHueHealth = isHueHealthy }
-    unless (babyMonitorHealth == healthy && isHDHomeRunHealthy && isMythTVHealthy && isPiholeHealthy && isHueHealthy) $ c_widget_schedule_redraw widget_ptr
+    hueHealth <- getHueStatus
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitorHealth = babyMonitorHealth, alertHDHomeRunHealth = isHDHomeRunHealthy, alertMythTVHealth = isMythTVHealthy, alertPiholeHealth = isPiholeHealthy, alertHueHealth = hueHealth }
+    unless (babyMonitorHealth == healthy && isHDHomeRunHealthy && isMythTVHealthy && isPiholeHealthy && hueHealth == healthy) $ c_widget_schedule_redraw widget_ptr
 
 alertHide t_ptr _ = do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, hide_task}
@@ -97,12 +97,12 @@ alertResizeHandler _ _ _ d_ptr = do
     c_widget_set_allocation widget_ptr 0 0 800 80
 
 alertRedrawHandler _ d_ptr = do
-    Alert widget_ptr _ _ _ _ babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy isHueHealthy showDashboard <- peek (castPtr d_ptr)
+    Alert widget_ptr _ _ _ _ babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth showDashboard <- peek (castPtr d_ptr)
     xp <- c_widget_cairo_create widget_ptr
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
-    drawAlert xpsurface showDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy isHueHealthy =<< c_widget_get_last_time widget_ptr
-    unless (babyMonitorHealth == healthy && isHDHomeRunHealthy && isMythTVHealthy && isPiholeHealthy && isHueHealthy) $ c_widget_schedule_redraw widget_ptr
+    drawAlert xpsurface showDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth =<< c_widget_get_last_time widget_ptr
+    unless (babyMonitorHealth == healthy && isHDHomeRunHealthy && isMythTVHealthy && isPiholeHealthy && hueHealth == healthy) $ c_widget_schedule_redraw widget_ptr
 
 alertTouchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
     let alert_ptr = castPtr d_ptr
@@ -118,7 +118,7 @@ alertCreate display_ptr window_ptr = do
         check_task <- Task <$> mkTimerTaskForeign alertCheck
         hide_fd <- c_timerfd_create clockMonotonic tfdCloexec
         hide_task <- Task <$> mkTimerTaskForeign alertHide
-        poke alert_ptr (Alert widget_ptr check_fd check_task hide_fd hide_task healthy True True True True False)
+        poke alert_ptr (Alert widget_ptr check_fd check_task hide_fd hide_task healthy True True True healthy False)
         redraw_funp <- mkRedrawHandlerForeign alertRedrawHandler
         resize_funp <- mkResizeHandlerForeign alertResizeHandler
         c_widget_set_redraw_handler widget_ptr redraw_funp
@@ -130,7 +130,7 @@ alertCreate display_ptr window_ptr = do
         c_wl_region_destroy region_ptr
         c_display_watch_fd display_ptr check_fd epollin (#{ptr struct alert, check_task} alert_ptr)
         c_display_watch_fd display_ptr hide_fd epollin (#{ptr struct alert, hide_task} alert_ptr)
-        with (ITimerSpec (TimeSpec 150 0) (TimeSpec 30 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
+        with (ITimerSpec (TimeSpec 150 0) (TimeSpec 15 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
         with (ITimerSpec (TimeSpec 0 0) (TimeSpec 0 0)) $ \its_ptr -> c_timerfd_settime hide_fd 0 its_ptr nullPtr
         FC.addForeignPtrFinalizer alert_fp $ do
             c_display_unwatch_fd display_ptr check_fd
