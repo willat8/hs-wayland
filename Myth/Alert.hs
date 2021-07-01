@@ -30,7 +30,8 @@ getHDHomeRunStatus = do
 
     status <- case eres of Right res -> return isHealthy
                                         where body = getResponseBody res
-                                              Success isHealthy = parse parseHDHomeRunStatus body
+                                              isHealthy = case (parse parseHDHomeRunStatus body) of Success result -> result
+                                                                                                    Error _        -> False
                            _         -> return False
 
     return status
@@ -46,7 +47,8 @@ getMythTVStatus = do
 
     status <- case eres of Right res -> return isHealthy
                                         where body = getResponseBody res
-                                              Success isHealthy = parse parseMythTVStatus body
+                                              isHealthy = case (parse parseMythTVStatus body) of Success result -> result
+                                                                                                 Error _        -> False
                            _         -> return False
 
     return (diskstatus && status)
@@ -61,7 +63,8 @@ getPiholeStatus = do
 
     status <- case eres of Right res -> return isHealthy
                                         where body = getResponseBody res
-                                              Success isHealthy = parse parsePiholeStatus body
+                                              isHealthy = case (parse parsePiholeStatus body) of Success result -> result
+                                                                                                 Error _        -> False
                            _         -> return False
 
     return status
@@ -77,7 +80,8 @@ getHueStatus = do
 
     status <- case eres of Right res -> return isHealthy
                                         where body = getResponseBody res
-                                              Success isHealthy = parse parseHueStatus body
+                                              isHealthy = case (parse parseHueStatus body) of Success result -> result
+                                                                                              Error _        -> (-1)
                            _         -> return (-1) -- Unhealthy
 
     return status
