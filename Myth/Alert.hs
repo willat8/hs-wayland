@@ -40,7 +40,6 @@ parseMythTVStatus = withObject "GetSettingList" $ \o ->
     pure o >>= (.: "SettingList") >>= (.: "Settings") >>= (.: "mythfilldatabaseLastRunStatus") >>= return . ((== "Successful.") :: String -> Bool)
 
 getMythTVStatus = do
-    diskstatus <- ((== "all pools are healthy") . trim) <$> getUrl "http://rancher/"
     req <- parseRequest "http://rancher:6544/Myth/GetSettingList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
 
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
@@ -51,7 +50,7 @@ getMythTVStatus = do
                                                                                                  Error _        -> False
                            _         -> return False
 
-    return (diskstatus && status)
+    return status
 
 parsePiholeStatus = withObject "Summary" $ \o ->
     pure o >>= (.: "status") >>= return . ((== "enabled") :: String -> Bool)
@@ -90,6 +89,4 @@ getHueStatus = do
 count "" _      = 0
 count search bs = if B.null t then 0 else 1 + count search (B.drop (B.length search) t)
     where (h,t) = B.breakSubstring search bs
-
-trim = C.reverse . C.dropWhile isSpace . C.reverse
 
