@@ -62,18 +62,20 @@ getMythTVStatus = do
 parsePiholeStatus = withObject "Summary" $ \o ->
     pure o >>= (.: "status") >>= return . ((== "enabled") :: String -> Bool)
 
+getPiholeStatus :: IO Bool
 getPiholeStatus = do
-    req <- parseRequest "http://pi.hole/admin/api.php" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
+    --req <- parseRequest "http://pi.hole/admin/api.php" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
 
-    eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
+    --eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
-    status <- case eres of Right res -> return isHealthy
-                                        where body = getResponseBody res
-                                              isHealthy = case (parse parsePiholeStatus body) of Success result -> result
-                                                                                                 Error _        -> False
-                           _         -> return False
+    --status <- case eres of Right res -> return isHealthy
+    --                                    where body = getResponseBody res
+    --                                          isHealthy = case (parse parsePiholeStatus body) of Success result -> result
+    --                                                                                             Error _        -> False
+    --                       _         -> return False
 
-    return status
+    --return status
+    return True
 
 parseHueStatus = withObject "lights" $ \o ->
     HashMap.traverseWithKey (\_ v -> withObject "light" (\l -> pure l >>= (.: "state") >>= (.: "reachable")) v) o >>= return . (foldr (\c l -> (if c then 0 else 1) + l) 0) . HashMap.elems
