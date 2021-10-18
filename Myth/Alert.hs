@@ -63,7 +63,7 @@ parsePiholeStatus = withObject "Summary" $ \o ->
     pure o >>= (.: "status") >>= return . ((== "enabled") :: String -> Bool)
 
 getPiholeStatus = do
-    req <- parseRequest "http://pi.hole/admin/api.php" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
+    req <- parseRequest "http://192.168.0.99/admin/api.php" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
 
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
