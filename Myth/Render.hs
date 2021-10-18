@@ -164,8 +164,7 @@ drawDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealt
     translate 1400 0
     drawBroadcastTowerIcon $ if (isHDHomeRunHealthy) then "green" else "red"
     translate 1400 0
-    --drawRaspberryPiIcon $ if (isPiholeHealthy) then "green" else "red"
-    drawRaspberryPiIcon $ if (isPiholeHealthy) then "white" else "red"
+    drawRaspberryPiIcon $ if (isPiholeHealthy) then "green" else "red"
     translate 1400 0
     drawLightbulbIcon $ if (hueHealth == healthy) then "green" else "red"
     identityMatrix
