@@ -25,7 +25,7 @@ parseIconPaths = withObject "EncoderList" $ \o ->
     pure o >>= (.: "EncoderList") >>= (.: "Encoders") >>= (mapM (.: "Recording")) . (V.toList) >>= mapM (.: "Channel") >>= mapM (.: "IconURL")
 
 getEncodersStatus = do
-    req <- parseRequest "http://192.168.0.10:6544/Dvr/GetEncoderList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
+    req <- parseRequest "http://mythbackend/Dvr/GetEncoderList" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
 
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
@@ -41,5 +41,5 @@ getEncodersStatus = do
     return status
 
 getChannelIcon ""   = return S.empty
-getChannelIcon path = getUrl ("http://192.168.0.10:6544" ++ path)
+getChannelIcon path = getUrl ("http://mythbackend" ++ path)
 
