@@ -46,7 +46,7 @@ parseMythTVStatus = withObject "GetProgramList" $ \o ->
 getMythTVStatus = do
     currentUtcTime <- getCurrentTime
 
-    req <- parseRequest "http://rancher:6544/Guide/GetProgramList?StartTime=2021-01-01T00:00:00&EndTime=2031-01-01T00:00:00&Count=1&Descending=1" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
+    req <- parseRequest "http://mythbackend/Guide/GetProgramList?StartTime=2021-01-01T00:00:00&EndTime=2031-01-01T00:00:00&Count=1&Descending=1" >>= \req -> return req { requestHeaders = [("Accept", "application/json")], responseTimeout = Just 5000000 }
 
     eres <- try $ httpJSON req :: IO (Either HttpException (Response Value))
 
