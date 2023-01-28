@@ -209,6 +209,8 @@ drawBroadcastTowerIcon colour = do
   svgRenderFromString ("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 89.68 70.95\"><defs><style>.cls-1{fill:#2f343b;}</style></defs><g id=\"Layer_2\" data-name=\"Layer 2\"><g id=\"Layer_2-2\" data-name=\"Layer 2\"><path fill=\"" ++ colour ++ "\" class=\"cls-1\" d=\"M87.44,13.34H83.3l2.13-2.13A2.25,2.25,0,1,0,82.25,8L77,13.34H67.72l4-4a2.25,2.25,0,1,0-3.17-3.18l-7.16,7.15H52.15L58,7.52A2.24,2.24,0,0,0,54.8,4.35l-9,9H36.58l7.67-7.66A2.25,2.25,0,0,0,41.07,2.5L30.23,13.34H21l9.51-9.51A2.24,2.24,0,1,0,27.35.66L.66,27.35a2.24,2.24,0,1,0,3.17,3.17L16.52,17.84h9.22L18.07,25.5a2.26,2.26,0,0,0,0,3.18,2.27,2.27,0,0,0,3.18,0l6.07-6.07V71H34.5V17.84h6.81l-5.82,5.82a2.25,2.25,0,0,0,3.18,3.17l9-9h9.22l-4,4a2.25,2.25,0,0,0,0,3.18,2.26,2.26,0,0,0,3.17,0l7.15-7.15h9.23L70.32,20a2.25,2.25,0,0,0,3.18,3.17l5.31-5.3h8.63a2.25,2.25,0,0,0,0-4.5Z\"/></g></g></svg>")
   restore
 
+-- https://raw.githubusercontent.com/pi-hole/AdminLTE/fb1b5c317e52ebb22380daf05fc94dddf001d6d7/img/logo.svg
+-- Original colours in order #22B225, #29FC2E, #F60D1A, #96060C, #96060C, #F60D1A
 drawRaspberryPiIcon colour = do
   save
   scale 0.4 0.4
