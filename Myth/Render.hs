@@ -174,18 +174,24 @@ drawDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealt
     when (hueHealth > 0) $ showText (show hueHealth) -- One of more lights are unreachable
     return ()
 
+-- https://fontawesome.com/v5/icons/baby
+-- Original fill not defined
 drawBabyIcon colour = do
   save
   scale 0.1 0.1
   svgRenderFromString ("<svg aria-hidden=\"true\" focusable=\"false\" data-prefix=\"fas\" data-icon=\"baby\" class=\"svg-inline--fa fa-baby fa-w-12\" role=\"img\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 384 512\"><path fill=\"" ++ colour ++ "\" d=\"M192 160c44.2 0 80-35.8 80-80S236.2 0 192 0s-80 35.8-80 80 35.8 80 80 80zm-53.4 248.8l25.6-32-61.5-51.2L56.8 383c-11.4 14.2-11.7 34.4-.8 49l48 64c7.9 10.5 19.9 16 32 16 8.3 0 16.8-2.6 24-8 17.7-13.2 21.2-38.3 8-56l-29.4-39.2zm142.7-83.2l-61.5 51.2 25.6 32L216 448c-13.2 17.7-9.7 42.8 8 56 7.2 5.4 15.6 8 24 8 12.2 0 24.2-5.5 32-16l48-64c10.9-14.6 10.6-34.8-.8-49l-45.9-57.4zM376.7 145c-12.7-18.1-37.6-22.4-55.7-9.8l-40.6 28.5c-52.7 37-124.2 37-176.8 0L63 135.3C44.9 122.6 20 127 7.3 145-5.4 163.1-1 188 17 200.7l40.6 28.5c17 11.9 35.4 20.9 54.4 27.9V288h160v-30.8c19-7 37.4-16 54.4-27.9l40.6-28.5c18.1-12.8 22.4-37.7 9.7-55.8z\"></path></svg>")
   restore
 
+-- https://fontawesome.com/v5/icons/microphone
+-- Original fill not defined
 drawMicrophoneIcon colour = do
   save
   scale 0.04 0.04
   svgRenderFromString ("<svg aria-hidden=\"true\" focusable=\"false\" data-prefix=\"fas\" data-icon=\"microphone\" class=\"svg-inline--fa fa-microphone fa-w-11\" role=\"img\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 352 512\"><path fill=\"" ++ colour ++ "\" d=\"M176 352c53.02 0 96-42.98 96-96V96c0-53.02-42.98-96-96-96S80 42.98 80 96v160c0 53.02 42.98 96 96 96zm160-160h-16c-8.84 0-16 7.16-16 16v48c0 74.8-64.49 134.82-140.79 127.38C96.71 376.89 48 317.11 48 250.3V208c0-8.84-7.16-16-16-16H16c-8.84 0-16 7.16-16 16v40.16c0 89.64 63.97 169.55 152 181.69V464H96c-8.84 0-16 7.16-16 16v16c0 8.84 7.16 16 16 16h160c8.84 0 16-7.16 16-16v-16c0-8.84-7.16-16-16-16h-56v-33.77C285.71 418.47 352 344.9 352 256v-48c0-8.84-7.16-16-16-16z\"></path></svg>")
   restore
 
+-- https://fontawesome.com/v5/icons/volume-down
+-- Original fill not defined
 drawSpeakerIcon colour = do
   save
   scale 0.04 0.04
@@ -217,6 +223,8 @@ drawRaspberryPiIcon colour = do
   svgRenderFromString ("<svg viewBox=\"0 0 90 130\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><defs><linearGradient y2=\"0\" y1=\"0\" x2=\".8\" x1=\"0\" id=\"a\"><stop stop-color=\"" ++ colour ++ "\" offset=\"0\"/><stop stop-color=\"" ++ colour ++ "\" offset=\"1\"/></linearGradient><path d=\"M1 85.459c0-1.717 1.707-16.993 16.907-16.993 9.998-.717 17.766 7.169 27.464 7.169 24.208-1.814 20.952-34.293-.252-34.293-5.3-.014-10.179 2.22-13.929 5.954L6.738 71.747C2.68 75.792 1 80.972 1 85.459z\" id=\"b\"/></defs><path fill=\"url(#a)\" d=\"M37.4 40.145C21.18 38.415 4.84 26.155 3.55.215c25.17 0 38.63 14.9 39.93 38.51 4.76-28.32 27.07-25 27.07-25 1.06 16.05-12.12 25.78-27.07 26.59-4.2-8.85-29.36-30.56-29.36-30.56a.07.07 0 0 0-.11.08s24.28 21.15 23.39 30.31\"/><use xlink:href=\"#b\" fill=\"" ++ colour ++ "\" transform=\"rotate(180 45 85.3)\"/><use xlink:href=\"#b\" fill=\"" ++ colour ++ "\" transform=\"rotate(90 45 85.3)\"/><use xlink:href=\"#b\" fill=\"" ++ colour ++ "\" transform=\"rotate(-90 45 85.3)\"/><use xlink:href=\"#b\" fill=\"" ++ colour ++ "\"/></svg>")
   restore
 
+-- https://fontawesome.com/v5/icons/lightbulb
+-- Original fill not defined
 drawLightbulbIcon colour = do
   save
   scale 0.1 0.1
