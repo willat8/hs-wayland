@@ -94,7 +94,7 @@ alertHide t_ptr _ = do
 
 alertResizeHandler _ _ _ d_ptr = do
     Alert widget_ptr _ _ _ _ _ _ _ _ _ _ <- peek (castPtr d_ptr)
-    c_widget_set_allocation widget_ptr 0 0 800 80
+    c_widget_set_allocation widget_ptr 0 400 800 80
 
 alertRedrawHandler _ d_ptr = do
     Alert widget_ptr _ _ _ _ babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth showDashboard <- peek (castPtr d_ptr)
