@@ -124,8 +124,7 @@ drawAlert surface showDashboard@False babyMonitorHealth isHDHomeRunHealthy isMyt
     | otherwise              = renderWith surface $ do drawMarquee time
 
 drawBlank = do
-    setOperator OperatorSource
-    setSourceRGBA 0 0 0 0
+    setOperator OperatorClear
     paint
 
 drawMarquee time = do

@@ -210,6 +210,7 @@ createOutput desktop_ptr id = do
 globalHandler _ id interface_cs _ d_ptr = do
     let desktop_ptr = castPtr d_ptr
     interface <- peekCString interface_cs
+    -- TODO: use guards
     if interface == "weston_desktop_shell"
         then do display_ptr <- desktopDisplay <$> peek desktop_ptr
                 ds_ptr <- castPtr <$> c_display_bind display_ptr id c_weston_desktop_shell_interface 1
