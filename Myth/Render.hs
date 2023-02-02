@@ -134,7 +134,7 @@ drawMarquee time = do
     selectFontFace "sans-serif" FontSlantItalic FontWeightBold
     setFontSize 36
     let x = 900 - fromIntegral (time `mod` 6000) / 5
-    let y = 36
+    let y = 56
     moveTo x y
     lineTo (x + 20) (y - 20)
     moveTo (x + 20) y
@@ -148,6 +148,7 @@ drawDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealt
     let isMicrophoneUnhealthy:isSpeakerUnhealthy:_ = toListLE babyMonitorHealth
     drawBlank
     setOperator OperatorOver
+    translate 0 20
     drawKubernetesIcon "green"
     translate 95 0
     drawBabyIcon $ if (isMicrophoneUnhealthy || isSpeakerUnhealthy) then "red" else "green"
