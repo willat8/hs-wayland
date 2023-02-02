@@ -167,7 +167,7 @@ drawDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealt
     translate 140 0
     drawLightbulbIcon $ if (hueHealth == healthy) then "green" else "red"
     identityMatrix
-    moveTo 700 25
+    moveTo 700 45
     setSourceRGBA 1 1 1 0.8
     selectFontFace "sans-serif" FontSlantItalic FontWeightBold
     setFontSize 24
