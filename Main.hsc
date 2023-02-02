@@ -10,10 +10,6 @@ import Foreign.C.String
 import qualified Foreign.Concurrent as FC
 import qualified Graphics.Rendering.Cairo.Types as XP
 import System.Posix.IO
-import Data.Time.Clock
-import Data.Time.Format
-import Data.Time.LocalTime
-import Control.Monad.IO.Class (liftIO)
 
 #include "hsmyth.h"
 
@@ -43,11 +39,7 @@ redrawHandler _ d_ptr = do
 buttonHandler _ input_ptr _ _ state d_ptr = do
     return ()
 
-touchDownHandler _ input_ptr _ _ _ x y d_ptr = do
-    t <- liftIO $ getCurrentTime
-    tz <- liftIO $ getCurrentTimeZone
-    let s = formatTime defaultTimeLocale "%l %M %S" <$> localTimeOfDay $ utcToLocalTime tz t
-    appendFile "/home/will/my.log" $ s ++ " Clock touch: (" ++ (show x) ++ ", " ++ (show y) ++ ")\n"
+touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
     return ()
 
 keyHandler _ _ _ _ _ state d_ptr = do
@@ -112,11 +104,7 @@ alertRedrawHandler _ d_ptr = do
     drawAlert xpsurface showDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth =<< c_widget_get_last_time widget_ptr
     unless (babyMonitorHealth == healthy && isHDHomeRunHealthy && isMythTVHealthy && isPiholeHealthy && hueHealth == healthy) $ c_widget_schedule_redraw widget_ptr
 
-alertTouchDownHandler _ input_ptr _ _ _ x y d_ptr = do
-    t <- liftIO $ getCurrentTime
-    tz <- liftIO $ getCurrentTimeZone
-    let s = formatTime defaultTimeLocale "%l %M %S" <$> localTimeOfDay $ utcToLocalTime tz t
-    appendFile "/home/will/my.log" $ s ++ " Dashboard touch: (" ++ (show x) ++ ", " ++ (show y) ++ ")\n"
+alertTouchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
     let alert_ptr = castPtr d_ptr
     Alert widget_ptr _ _ hide_fd _ _ _ _ _ _ _ <- peek alert_ptr
     peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = True }
