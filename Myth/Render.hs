@@ -81,15 +81,15 @@ drawTime win_w win_h t = do
     showText t
 
 drawRecordingTitles win_w win_h rts = do
-    let rts' = reverse . filter (not . null) $ rts
+    let rts' = filter (not . null) $ rts
     selectFontFace "sans-serif" FontSlantItalic FontWeightBold
     setFontSize 36
-    let ys = (-) win_h <$> [20,55..]
+    let ys = [20,55..]
     zipWithM_ (\y rt -> setSourceRGBA 1 0.2 0.2 0.6
-                     >> arc (win_w / 5 - 24) (y - 11) 11 0 (fromIntegral 2 * pi)
+                     >> arc (win_w / 6 - 24) (y - 11) 11 0 (fromIntegral 2 * pi)
                      >> fill
                      >> setSourceRGBA 1 1 1 0.8
-                     >> moveTo (win_w / 5) y
+                     >> moveTo (win_w / 6) y
                      >> showText rt
               ) ys rts'
 
