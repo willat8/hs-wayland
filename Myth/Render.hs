@@ -148,9 +148,9 @@ drawDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealt
     let isMicrophoneUnhealthy:isSpeakerUnhealthy:_ = toListLE babyMonitorHealth
     drawBlank
     setOperator OperatorOver
-    translate 0 20
+    translate 45 20
     drawKubernetesIcon "green"
-    translate 95 0
+    translate 112 0
     drawBabyIcon $ if (isMicrophoneUnhealthy || isSpeakerUnhealthy) then "red" else "green"
     save
     translate 40 7.5
@@ -158,16 +158,16 @@ drawDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealt
     translate 0 20
     drawSpeakerIcon $ if (isSpeakerUnhealthy) then "red" else "green"
     restore
-    translate 140 0
+    translate 132 0
     drawDvrIcon $ if (isMythTVHealthy) then "green" else "red"
-    translate 140 0
+    translate 132 0
     drawAntennaIcon $ if (isHDHomeRunHealthy) then "green" else "red"
-    translate 140 0
+    translate 132 0
     drawPiholeIcon $ if (isPiholeHealthy) then "green" else "red"
-    translate 140 0
+    translate 132 0
     drawLightbulbIcon $ if (hueHealth == healthy) then "green" else "red"
     identityMatrix
-    moveTo 700 45
+    moveTo 750 45
     setSourceRGBA 1 1 1 0.8
     selectFontFace "sans-serif" FontSlantItalic FontWeightBold
     setFontSize 24
