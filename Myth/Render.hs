@@ -150,7 +150,7 @@ drawDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealt
     setOperator OperatorOver
     translate 45 20
     drawKubernetesIcon "green"
-    translate 112 0
+    translate 132 0
     drawBabyIcon $ if (isMicrophoneUnhealthy || isSpeakerUnhealthy) then "red" else "green"
     save
     translate 40 7.5
