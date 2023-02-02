@@ -84,12 +84,12 @@ drawRecordingTitles win_w win_h rts = do
     let rts' = filter (not . null) $ rts
     selectFontFace "sans-serif" FontSlantItalic FontWeightBold
     setFontSize 36
-    let ys = [20,55..]
+    let ys = [40,75..]
     zipWithM_ (\y rt -> setSourceRGBA 1 0.2 0.2 0.6
-                     >> arc (win_w / 6 - 24) (y - 11) 11 0 (fromIntegral 2 * pi)
+                     >> arc (win_w / 8 - 24) (y - 11) 11 0 (fromIntegral 2 * pi)
                      >> fill
                      >> setSourceRGBA 1 1 1 0.8
-                     >> moveTo (win_w / 6) y
+                     >> moveTo (win_w / 8) y
                      >> showText rt
               ) ys rts'
 
