@@ -513,10 +513,10 @@ int
 widget_set_tooltip(struct widget *parent, char *entry, float x, float y);
 
 void
-widget_destroy_tooltip(struct widget *parent);
+widget_destroy_tooltip(struct widget *parent);*/
 
 struct widget *
-widget_add_widget(struct widget *parent, void *data);*/
+widget_add_widget(struct widget *parent, void *data);
 
 void
 widget_destroy(struct widget *widget);

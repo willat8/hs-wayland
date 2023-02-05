@@ -202,6 +202,16 @@ instance Storable Encoder where
         #{poke struct encoder, recording_title} ptr =<< newCString recording_title
         #{poke struct encoder, channel_icon} ptr =<< newStablePtr channel_icon
 
+data NodeButton = NodeButton { nodeButtonWidget :: Ptr Widget }
+instance Storable NodeButton where
+    sizeOf _    = #{size struct node_button}
+    alignment _ = #{alignment struct node_button}
+    peek ptr = do
+        widget_ptr <- #{peek struct node_button, widget} ptr
+        return (NodeButton widget_ptr)
+    poke ptr (NodeButton widget_ptr) = do
+        #{poke struct node_button, widget} ptr widget_ptr
+
 data Alert = Alert { alertWidget            :: Ptr Widget
                    , alertCheckFd           :: Fd
                    , alertCheckTask         :: Task
@@ -213,6 +223,7 @@ data Alert = Alert { alertWidget            :: Ptr Widget
                    , alertPiholeHealth      :: Bool
                    , alertHueHealth         :: Int
                    , alertShowDashboard     :: Bool
+                   , alertNodeButton        :: Ptr NodeButton
                    }
 instance Storable Alert where
     sizeOf _    = #{size struct alert}
@@ -229,8 +240,9 @@ instance Storable Alert where
         pihole_health <- #{peek struct alert, pihole_health} ptr
         hue_health <- (fromIntegral :: CInt -> Int) <$> #{peek struct alert, hue_health} ptr
         show_dashboard <- #{peek struct alert, show_dashboard} ptr
-        return (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health pihole_health hue_health show_dashboard)
-    poke ptr (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health pihole_health hue_health show_dashboard) = do
+        node_button_ptr <- #{peek struct alert, node_button} ptr
+        return (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health pihole_health hue_health show_dashboard node_button_ptr)
+    poke ptr (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health pihole_health hue_health show_dashboard node_button_ptr) = do
         #{poke struct alert, widget} ptr widget_ptr
         #{poke struct alert, check_fd} ptr check_fd
         #{poke struct alert, check_task} ptr check_task
@@ -242,6 +254,7 @@ instance Storable Alert where
         #{poke struct alert, pihole_health} ptr pihole_health
         #{poke struct alert, hue_health} ptr (fromIntegral hue_health :: CInt)
         #{poke struct alert, show_dashboard} ptr show_dashboard
+        #{poke struct alert, node_button} ptr node_button_ptr
 
 data Status = Status { statusDisplay     :: Ptr Display
                      , statusWindow      :: Ptr Window
@@ -375,6 +388,9 @@ foreign import ccall unsafe "window_set_key_handler"
 
 foreign import ccall unsafe "window_set_user_data"
     c_window_set_user_data :: Ptr Window -> Ptr () -> IO ()
+
+foreign import ccall safe "widget_add_widget"
+    c_widget_add_widget :: Ptr Widget -> Ptr () -> IO (Ptr Widget)
 
 foreign import ccall safe "widget_cairo_create"
     c_widget_cairo_create :: Ptr Widget -> IO (Ptr XP.Cairo)

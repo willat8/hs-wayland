@@ -1,4 +1,4 @@
-module Myth.Render (drawStatus, drawClock, drawAlert) where
+module Myth.Render (drawStatus, drawClock, drawAlert, drawNodeButton) where
 import qualified Myth.Internal as M
 import Myth.Alert
 import Control.Monad (zipWithM_, when)
@@ -173,6 +173,10 @@ drawDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealt
     setFontSize 24
     when (hueHealth > 0) $ showText (show hueHealth) -- One of more lights are unreachable
     return ()
+
+drawNodeButton surface = renderWith surface $ do
+    drawBlank
+    drawSquare 20 10 10 (255, 165, 0)
 
 -- https://fontawesome.com/v5/icons/baby
 -- Original fill not defined

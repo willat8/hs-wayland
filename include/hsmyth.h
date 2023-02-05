@@ -38,6 +38,10 @@ struct encoder {
     HsStablePtr *channel_icon;
 };
 
+struct node_button {
+    struct widget *widget;
+};
+
 struct alert {
     struct widget *widget;
     int check_fd;
@@ -50,6 +54,7 @@ struct alert {
     int pihole_health;
     int hue_health;
     int show_dashboard;
+    struct node_button *node_button;
 };
 
 struct status {
