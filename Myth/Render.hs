@@ -176,6 +176,7 @@ drawDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealt
 
 drawNodeButton surface = renderWith surface $ do
     drawBlank
+    setOperator OperatorOver
     drawSquare 20 10 10 (255, 165, 0)
 
 -- https://fontawesome.com/v5/icons/baby

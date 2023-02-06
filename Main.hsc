@@ -142,12 +142,13 @@ alertCreate display_ptr window_ptr = do
             closeFd hide_fd
             freeHaskellFunPtr redraw_funp
             freeHaskellFunPtr resize_funp
+            -- What about touch_funp?
             c_widget_destroy widget_ptr
         return alert_fp
 
 nodeButtonResizeHandler _ _ _ d_ptr = do
     NodeButton widget_ptr <- peek (castPtr d_ptr)
-    c_widget_set_allocation widget_ptr 120 400 120 80
+    c_widget_set_allocation widget_ptr 0 0 120 80
 
 nodeButtonRedrawHandler _ d_ptr = do
     NodeButton widget_ptr <- peek (castPtr d_ptr)
@@ -164,6 +165,7 @@ nodeButtonTouchDownHandler _ input_ptr _ _ _ x y d_ptr = do
 nodeButtonCreate alert_ptr = do
     mallocForeignPtr >>= \node_fp -> withForeignPtr node_fp $ \node_ptr -> do
         widget_ptr <- c_widget_add_widget (castPtr alert_ptr) (castPtr node_ptr)
+        poke node_ptr (NodeButton widget_ptr)
         redraw_funp <- mkRedrawHandlerForeign nodeButtonRedrawHandler
         resize_funp <- mkResizeHandlerForeign nodeButtonResizeHandler
         touch_funp <- mkTouchDownHandlerForeign nodeButtonTouchDownHandler
