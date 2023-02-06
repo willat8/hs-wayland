@@ -89,7 +89,7 @@ alertHide t_ptr _ = do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, hide_task}
     Alert widget_ptr _ _ hide_fd _ _ _ _ _ _ _ node_ptr <- peek alert_ptr
     fdRead hide_fd #{size uint64_t}
-    --TODO: finalizeForeignPtr node_ptr
+    --TODO: finalizeForeignPtr node_ptr ?
     peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = False, alertNodeButton = nullPtr }
     c_widget_schedule_redraw widget_ptr
 
@@ -106,11 +106,13 @@ alertRedrawHandler _ d_ptr = do
     unless (babyMonitorHealth == healthy && isHDHomeRunHealthy && isMythTVHealthy && isPiholeHealthy && hueHealth == healthy) $ c_widget_schedule_redraw widget_ptr
 
 alertTouchDownHandler _ input_ptr _ _ _ x _ d_ptr = do
+    appendFile "/home/will/my.log" "Dashboard touch down!\n" 
     let alert_ptr = castPtr d_ptr
-    Alert widget_ptr _ _ hide_fd _ _ _ _ _ _ showDashboard _ <- peek alert_ptr
+    Alert widget_ptr _ _ hide_fd _ _ _ _ _ _ showDashboard nodeButton <- peek alert_ptr
     -- If touch hits k8s region
-    when (showDashboard && x < 111) $ nodeButtonCreate widget_ptr >>= (`withForeignPtr` \node_ptr -> peek alert_ptr >>= \alert -> poke alert_ptr alert { alertNodeButton = node_ptr })
-    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = True }
+    node_ptr <- case (nodeButton == nullPtr && showDashboard && x < 111) of False -> return nullPtr
+                                                                            True  -> nodeButtonCreate widget_ptr >>= (`withForeignPtr` \node_ptr -> return node_ptr)
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = True, alertNodeButton = node_ptr }
     with (ITimerSpec (TimeSpec 0 0) (TimeSpec 30 0)) $ \its_ptr -> c_timerfd_settime hide_fd 0 its_ptr nullPtr
     c_widget_schedule_redraw widget_ptr
 
@@ -158,6 +160,7 @@ nodeButtonRedrawHandler _ d_ptr = do
     drawNodeButton xpsurface
 
 nodeButtonTouchDownHandler _ input_ptr _ _ _ x y d_ptr = do
+    appendFile "/home/will/my.log" "Node button touch down!\n" 
     let node_ptr = castPtr d_ptr
     NodeButton widget_ptr <- peek node_ptr
     c_widget_schedule_redraw widget_ptr
@@ -173,6 +176,7 @@ nodeButtonCreate alert_ptr = do
         c_widget_set_resize_handler widget_ptr resize_funp
         c_widget_set_touch_down_handler widget_ptr touch_funp
         FC.addForeignPtrFinalizer node_fp $ do
+            appendFile "/home/will/my.log" "In finalizer\n" 
             freeHaskellFunPtr redraw_funp
             freeHaskellFunPtr resize_funp
             freeHaskellFunPtr touch_funp

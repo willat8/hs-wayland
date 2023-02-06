@@ -175,7 +175,7 @@ drawDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealt
     return ()
 
 drawNodeButton surface = renderWith surface $ do
-    drawBlank
+    --drawBlank
     setOperator OperatorOver
     drawSquare 20 10 10 (255, 165, 0)
 
