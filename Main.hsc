@@ -87,10 +87,9 @@ alertCheck t_ptr _ = do
 
 alertHide node_fp t_ptr _ = do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, hide_task}
-    Alert widget_ptr _ _ hide_fd _ _ _ _ _ _ _ node_ptr <- peek alert_ptr
+    Alert widget_ptr _ _ hide_fd _ _ _ _ _ _ _ _ <- peek alert_ptr
     fdRead hide_fd #{size uint64_t}
-    -- Is this needed? Can you finalize a nullPtr with no finalizers?
-    withForeignPtr node_fp $ \node_ptr -> when (node_ptr /= nullPtr) $ finalizeForeignPtr node_fp
+    finalizeForeignPtr node_fp
     peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = False, alertNodeButton = nullPtr }
     c_widget_schedule_redraw widget_ptr
 
@@ -108,13 +107,13 @@ alertRedrawHandler _ d_ptr = do
 
 alertTouchDownHandler _ input_ptr _ _ _ x _ d_ptr = do
     let alert_ptr = castPtr d_ptr
-    Alert widget_ptr _ _ hide_fd _ _ _ _ _ _ showDashboard nodeButton <- peek alert_ptr
+    Alert widget_ptr _ _ hide_fd (Task hide_fp) _ _ _ _ _ showDashboard nodeButton <- peek alert_ptr
     -- If touch hits k8s region
     when (nodeButton == nullPtr && showDashboard && x < 111) $ do
         node_fp <- nodeButtonCreate widget_ptr
+        freeHaskellFunPtr hide_fp
         hide_task <- Task <$> mkTimerTaskForeign (alertHide node_fp)
-        -- TODO: free existing funp
-        withForeignPtr node_fp $ \node_ptr -> peek alert_ptr >>= \alert -> poke alert_ptr alert { alertNodeButton = alert_ptr, alertHideTask = hide_task }
+        withForeignPtr node_fp $ \node_ptr -> peek alert_ptr >>= \alert -> poke alert_ptr alert { alertNodeButton = node_ptr, alertHideTask = hide_task }
     peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = True }
     with (ITimerSpec (TimeSpec 0 0) (TimeSpec 30 0)) $ \its_ptr -> c_timerfd_settime hide_fd 0 its_ptr nullPtr
     c_widget_schedule_redraw widget_ptr
