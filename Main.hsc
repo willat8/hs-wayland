@@ -40,6 +40,7 @@ buttonHandler _ input_ptr _ _ state d_ptr = do
     return ()
 
 touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
+    appendFile "/home/will/my.log" "Clock touch!\n"
     return ()
 
 keyHandler _ _ _ _ _ state d_ptr = do
@@ -106,6 +107,7 @@ alertRedrawHandler _ d_ptr = do
     unless (babyMonitorHealth == healthy && isHDHomeRunHealthy && isMythTVHealthy && isPiholeHealthy && hueHealth == healthy) $ c_widget_schedule_redraw widget_ptr
 
 alertTouchDownHandler _ input_ptr _ _ _ x _ d_ptr = do
+    appendFile "/home/will/my.log" "Dashboard touch!\n"
     let alert_ptr = castPtr d_ptr
     Alert widget_ptr _ _ hide_fd (Task hide_fp) _ _ _ _ _ showDashboard nodeButton <- peek alert_ptr
     -- If touch hits k8s region
@@ -151,10 +153,6 @@ alertCreate display_ptr window_ptr = do
             c_widget_destroy widget_ptr
         return alert_fp
 
-nodeButtonResizeHandler _ _ _ d_ptr = do
-    NodeButton widget_ptr <- peek (castPtr d_ptr)
-    c_widget_set_allocation widget_ptr 0 0 120 80
-
 nodeButtonRedrawHandler _ d_ptr = do
     NodeButton widget_ptr <- peek (castPtr d_ptr)
     xp <- c_widget_cairo_create widget_ptr
@@ -163,6 +161,7 @@ nodeButtonRedrawHandler _ d_ptr = do
     drawNodeButton xpsurface
 
 nodeButtonTouchDownHandler _ input_ptr _ _ _ x y d_ptr = do
+    appendFile "/home/will/my.log" "k8s touch!\n"
     let node_ptr = castPtr d_ptr
     NodeButton widget_ptr <- peek node_ptr
     c_widget_schedule_redraw widget_ptr
@@ -172,14 +171,12 @@ nodeButtonCreate alert_ptr = do
         widget_ptr <- c_widget_add_widget (castPtr alert_ptr) (castPtr node_ptr)
         poke node_ptr (NodeButton widget_ptr)
         redraw_funp <- mkRedrawHandlerForeign nodeButtonRedrawHandler
-        resize_funp <- mkResizeHandlerForeign nodeButtonResizeHandler
         touch_funp <- mkTouchDownHandlerForeign nodeButtonTouchDownHandler
         c_widget_set_redraw_handler widget_ptr redraw_funp
-        c_widget_set_resize_handler widget_ptr resize_funp
         c_widget_set_touch_down_handler widget_ptr touch_funp
+        c_widget_set_allocation widget_ptr 0 400 120 80
         FC.addForeignPtrFinalizer node_fp $ do
             freeHaskellFunPtr redraw_funp
-            freeHaskellFunPtr resize_funp
             freeHaskellFunPtr touch_funp
             c_widget_destroy widget_ptr
         return node_fp
