@@ -174,10 +174,9 @@ drawDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealt
     when (hueHealth > 0) $ showText (show hueHealth) -- One of more lights are unreachable
     return ()
 
-drawNodeButton surface = renderWith surface $ do
-    --drawBlank
+drawNodeButton surface allocation = renderWith surface $ do
     setOperator OperatorOver
-    drawSquare 20 10 10 (255, 165, 0)
+    drawSquare 20 (fromIntegral $ M.rectangleX allocation) 10 (255, 165, 0)
 
 -- https://fontawesome.com/v5/icons/baby
 -- Original fill not defined

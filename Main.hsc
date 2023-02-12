@@ -86,12 +86,12 @@ alertCheck t_ptr _ = do
     peek alert_ptr >>= \alert -> poke alert_ptr alert { alertBabyMonitorHealth = babyMonitorHealth, alertHDHomeRunHealth = isHDHomeRunHealthy, alertMythTVHealth = isMythTVHealthy, alertPiholeHealth = isPiholeHealthy, alertHueHealth = hueHealth }
     unless (babyMonitorHealth == healthy && isHDHomeRunHealthy && isMythTVHealthy && isPiholeHealthy && hueHealth == healthy) $ c_widget_schedule_redraw widget_ptr
 
-alertHide node_fp t_ptr _ = do
+alertHide node_fps t_ptr _ = do
     let alert_ptr = t_ptr `plusPtr` negate #{offset struct alert, hide_task}
     Alert widget_ptr _ _ hide_fd _ _ _ _ _ _ _ _ <- peek alert_ptr
     fdRead hide_fd #{size uint64_t}
-    finalizeForeignPtr node_fp
-    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = False, alertNodeButton = nullPtr }
+    mapM_ finalizeForeignPtr node_fps
+    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = False, alertNodeButtons = [] }
     c_widget_schedule_redraw widget_ptr
 
 alertResizeHandler _ _ _ d_ptr = do
@@ -111,14 +111,23 @@ alertTouchDownHandler _ input_ptr _ _ _ x _ d_ptr = do
     let alert_ptr = castPtr d_ptr
     Alert widget_ptr _ _ hide_fd (Task hide_fp) _ _ _ _ _ showDashboard nodeButton <- peek alert_ptr
     -- If touch hits k8s region
-    when (nodeButton == nullPtr && showDashboard && x < 111) $ do
-        node_fp <- nodeButtonCreate widget_ptr
+    when (nodeButton == [] && showDashboard && x < 111) $ do
+        node_fps <- zipWithM (nodeButtonCreate widget_ptr) ["control-plane-1", "control-plane-2", "control-plane-3"] [200, 400, 600]
         freeHaskellFunPtr hide_fp
-        hide_task <- Task <$> mkTimerTaskForeign (alertHide node_fp)
-        withForeignPtr node_fp $ \node_ptr -> peek alert_ptr >>= \alert -> poke alert_ptr alert { alertNodeButton = node_ptr, alertHideTask = hide_task }
+        hide_task <- Task <$> mkTimerTaskForeign (alertHide node_fps)
+        withForeignPtrs node_fps $ \node_ptrs -> peek alert_ptr >>= \alert -> poke alert_ptr alert { alertNodeButtons = node_ptrs, alertHideTask = hide_task }
     peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = True }
     with (ITimerSpec (TimeSpec 0 0) (TimeSpec 30 0)) $ \its_ptr -> c_timerfd_settime hide_fd 0 its_ptr nullPtr
     c_widget_schedule_redraw widget_ptr
+
+-- f([fps]) -> f([ptrs])
+withForeignPtrs :: [ForeignPtr a] -> ([Ptr a] -> IO b) -> IO ()
+withForeignPtrs [] _ = return ()
+withForeignPtrs (fp:fps) f = withForeignPtr fp $ \ptr -> withForeignPtrs' [ptr] fps f
+
+withForeignPtrs' [] [] f = return ()
+withForeignPtrs' ptrs [] f = f ptrs >> return ()
+withForeignPtrs' ptrs (fp:fps) f = withForeignPtr fp $ \ptr -> withForeignPtrs' (ptrs ++ [ptr]) fps f
 
 alertCreate display_ptr window_ptr = do
     mallocForeignPtr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
@@ -127,8 +136,8 @@ alertCreate display_ptr window_ptr = do
         check_task <- Task <$> mkTimerTaskForeign alertCheck
         hide_fd <- c_timerfd_create clockMonotonic tfdCloexec
         null_fp <- newForeignPtr_ nullPtr
-        hide_task <- Task <$> mkTimerTaskForeign (alertHide null_fp)
-        poke alert_ptr (Alert widget_ptr check_fd check_task hide_fd hide_task healthy True True True healthy False nullPtr)
+        hide_task <- Task <$> mkTimerTaskForeign (alertHide [])
+        poke alert_ptr (Alert widget_ptr check_fd check_task hide_fd hide_task healthy True True True healthy False [])
         redraw_funp <- mkRedrawHandlerForeign alertRedrawHandler
         resize_funp <- mkResizeHandlerForeign alertResizeHandler
         c_widget_set_redraw_handler widget_ptr redraw_funp
@@ -154,28 +163,33 @@ alertCreate display_ptr window_ptr = do
         return alert_fp
 
 nodeButtonRedrawHandler _ d_ptr = do
-    NodeButton widget_ptr <- peek (castPtr d_ptr)
+    NodeButton widget_ptr _ <- peek (castPtr d_ptr)
+    allocation <- alloca $ \allocation_ptr -> do
+        c_widget_get_allocation widget_ptr allocation_ptr
+        allocation <- peek allocation_ptr
+        return allocation
     xp <- c_widget_cairo_create widget_ptr
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
-    drawNodeButton xpsurface
+    drawNodeButton xpsurface allocation
 
 nodeButtonTouchDownHandler _ input_ptr _ _ _ x y d_ptr = do
-    appendFile "/home/will/my.log" "k8s touch!\n"
     let node_ptr = castPtr d_ptr
-    NodeButton widget_ptr <- peek node_ptr
+    NodeButton widget_ptr hostname <- peek node_ptr
+    appendFile "/home/will/my.log" (hostname ++ " touch!\n")
     c_widget_schedule_redraw widget_ptr
 
-nodeButtonCreate alert_ptr = do
+nodeButtonCreate alert_ptr hostname x = do
     mallocForeignPtr >>= \node_fp -> withForeignPtr node_fp $ \node_ptr -> do
         widget_ptr <- c_widget_add_widget (castPtr alert_ptr) (castPtr node_ptr)
-        poke node_ptr (NodeButton widget_ptr)
+        poke node_ptr (NodeButton widget_ptr hostname)
         redraw_funp <- mkRedrawHandlerForeign nodeButtonRedrawHandler
         touch_funp <- mkTouchDownHandlerForeign nodeButtonTouchDownHandler
         c_widget_set_redraw_handler widget_ptr redraw_funp
         c_widget_set_touch_down_handler widget_ptr touch_funp
-        c_widget_set_allocation widget_ptr 0 400 120 80
+        c_widget_set_allocation widget_ptr (x - 60) 400 120 80
         FC.addForeignPtrFinalizer node_fp $ do
+            appendFile "/home/will/my.log" (hostname ++ " finalizing!\n")
             freeHaskellFunPtr redraw_funp
             freeHaskellFunPtr touch_funp
             c_widget_destroy widget_ptr

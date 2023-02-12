@@ -1,6 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
 
 module Myth.Internal where
+import Control.Monad
 import qualified Data.ByteString as B
 import Foreign
 import Foreign.C.String
@@ -42,6 +43,22 @@ newtype CairoStatus = CairoStatus { unCairoStatus :: CInt }
 newtype SubsurfaceMode = SubsurfaceMode { unSubsurfaceMode :: CInt }
     deriving (Eq,Show)
 #enum SubsurfaceMode, SubsurfaceMode, SUBSURFACE_SYNCHRONIZED, SUBSURFACE_DESYNCHRONIZED
+
+data Rectangle = Rectangle { rectangleX      :: CInt
+                           , rectangleY      :: CInt
+                           , rectangleWidth  :: CInt
+                           , rectangleHeight :: CInt
+                           }
+instance Storable Rectangle where
+    sizeOf _    = #{size struct rectangle}
+    alignment _ = #{alignment struct rectangle}
+    peek ptr = do
+        x      <- #{peek struct rectangle, x} ptr
+        y      <- #{peek struct rectangle, y} ptr
+        width  <- #{peek struct rectangle, width} ptr
+        height <- #{peek struct rectangle, height} ptr
+        return (Rectangle x y width height)
+    poke _ _ = return ()
 
 data WlOutputInterface
 foreign import ccall unsafe "&wl_output_interface"
@@ -202,15 +219,24 @@ instance Storable Encoder where
         #{poke struct encoder, recording_title} ptr =<< newCString recording_title
         #{poke struct encoder, channel_icon} ptr =<< newStablePtr channel_icon
 
-data NodeButton = NodeButton { nodeButtonWidget :: Ptr Widget }
+data NodeButton = NodeButton { nodeButtonWidget   :: Ptr Widget
+                             , nodeButtonHostname :: String
+                             }
 instance Storable NodeButton where
     sizeOf _    = #{size struct node_button}
     alignment _ = #{alignment struct node_button}
     peek ptr = do
         widget_ptr <- #{peek struct node_button, widget} ptr
-        return (NodeButton widget_ptr)
-    poke ptr (NodeButton widget_ptr) = do
+        hostname <- peekCString =<< #{peek struct node_button, hostname} ptr
+        return (NodeButton widget_ptr hostname)
+    poke ptr (NodeButton widget_ptr hostname) = do
         #{poke struct node_button, widget} ptr widget_ptr
+
+        -- TODO: how to do this safely? How is it done safely with encoders?
+        --old_hostname <- #{peek struct node_button, hostname} ptr
+        --when (old_hostname /= nullPtr) $ free old_hostname
+
+        #{poke struct node_button, hostname} ptr =<< newCString hostname
 
 data Alert = Alert { alertWidget            :: Ptr Widget
                    , alertCheckFd           :: Fd
@@ -223,7 +249,7 @@ data Alert = Alert { alertWidget            :: Ptr Widget
                    , alertPiholeHealth      :: Bool
                    , alertHueHealth         :: Int
                    , alertShowDashboard     :: Bool
-                   , alertNodeButton        :: Ptr NodeButton
+                   , alertNodeButtons       :: [Ptr NodeButton]
                    }
 instance Storable Alert where
     sizeOf _    = #{size struct alert}
@@ -240,9 +266,9 @@ instance Storable Alert where
         pihole_health <- #{peek struct alert, pihole_health} ptr
         hue_health <- (fromIntegral :: CInt -> Int) <$> #{peek struct alert, hue_health} ptr
         show_dashboard <- #{peek struct alert, show_dashboard} ptr
-        node_button_ptr <- #{peek struct alert, node_button} ptr
-        return (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health pihole_health hue_health show_dashboard node_button_ptr)
-    poke ptr (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health pihole_health hue_health show_dashboard node_button_ptr) = do
+        node_buttons <- id =<< peekArray <$> #{peek struct alert, num_node_buttons} ptr <*> #{peek struct alert, node_buttons} ptr
+        return (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health pihole_health hue_health show_dashboard node_buttons)
+    poke ptr (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health pihole_health hue_health show_dashboard node_buttons) = do
         #{poke struct alert, widget} ptr widget_ptr
         #{poke struct alert, check_fd} ptr check_fd
         #{poke struct alert, check_task} ptr check_task
@@ -254,7 +280,11 @@ instance Storable Alert where
         #{poke struct alert, pihole_health} ptr pihole_health
         #{poke struct alert, hue_health} ptr (fromIntegral hue_health :: CInt)
         #{poke struct alert, show_dashboard} ptr show_dashboard
-        #{poke struct alert, node_button} ptr node_button_ptr
+
+        free =<< #{peek struct alert, node_buttons} ptr
+
+        #{poke struct alert, num_node_buttons} ptr (length node_buttons)
+        #{poke struct alert, node_buttons} ptr =<< newArray node_buttons
 
 data Status = Status { statusDisplay     :: Ptr Display
                      , statusWindow      :: Ptr Window
@@ -397,6 +427,9 @@ foreign import ccall safe "widget_cairo_create"
 
 foreign import ccall unsafe "widget_destroy"
     c_widget_destroy :: Ptr Widget -> IO ()
+
+foreign import ccall safe "widget_get_allocation"
+    c_widget_get_allocation :: Ptr Widget -> (Ptr Rectangle) -> IO ()
 
 foreign import ccall safe "widget_get_last_time"
     c_widget_get_last_time :: Ptr Widget -> IO (CUInt)

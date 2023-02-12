@@ -40,6 +40,7 @@ struct encoder {
 
 struct node_button {
     struct widget *widget;
+    char *hostname;
 };
 
 struct alert {
@@ -54,7 +55,8 @@ struct alert {
     int pihole_health;
     int hue_health;
     int show_dashboard;
-    struct node_button *node_button;
+    size_t num_node_buttons;
+    struct node_button **node_buttons;
 };
 
 struct status {
