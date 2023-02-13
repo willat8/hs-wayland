@@ -91,6 +91,7 @@ alertHide node_fps t_ptr _ = do
     Alert widget_ptr _ _ hide_fd _ _ _ _ _ _ _ _ <- peek alert_ptr
     fdRead hide_fd #{size uint64_t}
     mapM_ finalizeForeignPtr node_fps
+    free <=< #{peek struct alert, node_buttons} $ alert_ptr
     peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = False, alertNodeButtons = [] }
     c_widget_schedule_redraw widget_ptr
 
@@ -140,9 +141,10 @@ alertCreate display_ptr window_ptr = do
         poke alert_ptr (Alert widget_ptr check_fd check_task hide_fd hide_task healthy True True True healthy False [])
         redraw_funp <- mkRedrawHandlerForeign alertRedrawHandler
         resize_funp <- mkResizeHandlerForeign alertResizeHandler
+        touch_funp <- mkTouchDownHandlerForeign alertTouchDownHandler
         c_widget_set_redraw_handler widget_ptr redraw_funp
         c_widget_set_resize_handler widget_ptr resize_funp
-        c_widget_set_touch_down_handler widget_ptr =<< mkTouchDownHandlerForeign alertTouchDownHandler
+        c_widget_set_touch_down_handler widget_ptr touch_funp
         s_ptr <- c_widget_get_wl_surface widget_ptr
         region_ptr <- c_wl_compositor_create_region =<< c_display_get_compositor display_ptr
         c_wl_surface_set_input_region s_ptr region_ptr
@@ -156,9 +158,10 @@ alertCreate display_ptr window_ptr = do
             c_display_unwatch_fd display_ptr hide_fd
             closeFd check_fd
             closeFd hide_fd
+            withForeignPtr alert_fp $ free <=< #{peek struct alert, node_buttons}
             freeHaskellFunPtr redraw_funp
             freeHaskellFunPtr resize_funp
-            -- What about touch_funp?
+            freeHaskellFunPtr touch_funp
             c_widget_destroy widget_ptr
         return alert_fp
 
@@ -190,6 +193,7 @@ nodeButtonCreate alert_ptr hostname x = do
         c_widget_set_allocation widget_ptr (x - 60) 400 120 80
         FC.addForeignPtrFinalizer node_fp $ do
             appendFile "/home/will/my.log" (hostname ++ " finalizing!\n")
+            withForeignPtr node_fp $ free <=< #{peek struct node_button, hostname}
             freeHaskellFunPtr redraw_funp
             freeHaskellFunPtr touch_funp
             c_widget_destroy widget_ptr

@@ -231,11 +231,6 @@ instance Storable NodeButton where
         return (NodeButton widget_ptr hostname)
     poke ptr (NodeButton widget_ptr hostname) = do
         #{poke struct node_button, widget} ptr widget_ptr
-
-        -- TODO: how to do this safely? How is it done safely with encoders?
-        --old_hostname <- #{peek struct node_button, hostname} ptr
-        --when (old_hostname /= nullPtr) $ free old_hostname
-
         #{poke struct node_button, hostname} ptr =<< newCString hostname
 
 data Alert = Alert { alertWidget            :: Ptr Widget
@@ -280,9 +275,6 @@ instance Storable Alert where
         #{poke struct alert, pihole_health} ptr pihole_health
         #{poke struct alert, hue_health} ptr (fromIntegral hue_health :: CInt)
         #{poke struct alert, show_dashboard} ptr show_dashboard
-
-        free =<< #{peek struct alert, node_buttons} ptr
-
         #{poke struct alert, num_node_buttons} ptr (length node_buttons)
         #{poke struct alert, node_buttons} ptr =<< newArray node_buttons
 
