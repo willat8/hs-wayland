@@ -1,4 +1,4 @@
-module Myth.Render (drawStatus, drawClock, drawAlert, drawNodeButton) where
+module Myth.Render (drawStatus, drawClock, drawAlert, drawNodeButton, drawBlank) where
 import qualified Myth.Internal as M
 import Myth.Alert
 import Control.Monad (zipWithM_, when)
@@ -120,15 +120,16 @@ drawAlert surface showDashboard@False babyMonitorHealth isHDHomeRunHealthy isMyt
        isHDHomeRunHealthy &&
        isMythTVHealthy &&
        isPiholeHealthy &&
-       hueHealth == healthy) = renderWith surface $ do drawBlank
+       hueHealth == healthy) = renderWith surface $ do drawBlank'
     | otherwise              = renderWith surface $ do drawMarquee time
 
-drawBlank = do
+drawBlank surface = renderWith surface drawBlank'
+drawBlank' = do
     setOperator OperatorClear
     paint
 
 drawMarquee time = do
-    drawBlank
+    drawBlank'
     setOperator OperatorOver
     setSourceRGBA 1 0.2 0.2 0.6
     selectFontFace "sans-serif" FontSlantItalic FontWeightBold
@@ -146,7 +147,7 @@ drawMarquee time = do
 
 drawDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth = do
     let isMicrophoneUnhealthy:isSpeakerUnhealthy:_ = toListLE babyMonitorHealth
-    drawBlank
+    drawBlank'
     setOperator OperatorOver
     translate 45 20
     drawKubernetesIcon "green"

@@ -46,7 +46,6 @@ buttonHandler _ input_ptr _ _ state d_ptr = do
     return ()
 
 touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
-    appendFile "/home/will/my.log" "Clock touch!\n"
     return ()
 
 keyHandler _ _ _ _ _ state d_ptr = do
@@ -114,7 +113,6 @@ alertRedrawHandler _ d_ptr = do
     unless (babyMonitorHealth == healthy && isHDHomeRunHealthy && isMythTVHealthy && isPiholeHealthy && hueHealth == healthy) $ c_widget_schedule_redraw widget_ptr
 
 alertTouchDownHandler _ input_ptr _ _ _ x _ d_ptr = do
-    appendFile "/home/will/my.log" "Dashboard touch!\n"
     let alert_ptr = castPtr d_ptr
     Alert widget_ptr _ _ hide_fd (Task hide_fp) _ _ _ _ _ showDashboard nodeButton <- peek alert_ptr
     -- If touch hits k8s region
@@ -172,7 +170,7 @@ alertCreate display_ptr window_ptr = do
         return alert_fp
 
 nodeButtonRedrawHandler _ d_ptr = do
-    NodeButton widget_ptr _ <- peek (castPtr d_ptr)
+    NodeButton widget_ptr hostname <- peek (castPtr d_ptr)
     allocation <- alloca $ \allocation_ptr -> do
         c_widget_get_allocation widget_ptr allocation_ptr
         allocation <- peek allocation_ptr
@@ -180,12 +178,13 @@ nodeButtonRedrawHandler _ d_ptr = do
     xp <- c_widget_cairo_create widget_ptr
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
+    -- Hacky draw
+    when (hostname == "control-plane-1") $ drawBlank xpsurface
     drawNodeButton xpsurface allocation
 
 nodeButtonTouchDownHandler _ input_ptr _ _ _ x y d_ptr = do
     let node_ptr = castPtr d_ptr
     NodeButton widget_ptr hostname <- peek node_ptr
-    appendFile "/home/will/my.log" (hostname ++ " touch!\n")
     c_widget_schedule_redraw widget_ptr
 
 nodeButtonCreate alert_ptr hostname x = do
@@ -198,7 +197,6 @@ nodeButtonCreate alert_ptr hostname x = do
         c_widget_set_touch_down_handler widget_ptr touch_funp
         c_widget_set_allocation widget_ptr (x - 60) 400 120 80
         FC.addForeignPtrFinalizer node_fp $ do
-            appendFile "/home/will/my.log" (hostname ++ " finalizing!\n")
             withForeignPtr node_fp $ free <=< #{peek struct node_button, hostname}
             freeHaskellFunPtr redraw_funp
             freeHaskellFunPtr touch_funp
