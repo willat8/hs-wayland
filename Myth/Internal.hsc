@@ -1,7 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
 
 module Myth.Internal where
-import Control.Monad
 import qualified Data.ByteString as B
 import Foreign
 import Foreign.C.String
