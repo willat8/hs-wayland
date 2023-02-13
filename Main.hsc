@@ -273,25 +273,23 @@ createOutput desktop_ptr id = do
 globalHandler _ id interface_cs _ d_ptr = do
     let desktop_ptr = castPtr d_ptr
     interface <- peekCString interface_cs
-    -- TODO: use guards
-    if interface == "weston_desktop_shell"
-        then do display_ptr <- desktopDisplay <$> peek desktop_ptr
-                ds_ptr <- castPtr <$> c_display_bind display_ptr id c_weston_desktop_shell_interface 1
-                peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopShell = ds_ptr }
-                l_ptr <- new =<< Listener <$> mkDesktopShellConfigureForeign desktopShellConfigure
-                                          <*> mkDesktopShellPrepareLockSurfaceForeign desktopShellPrepareLockSurface
-                                          <*> mkDesktopShellGrabCursorForeign desktopShellGrabCursor
-                c_weston_desktop_shell_add_listener ds_ptr l_ptr desktop_ptr
-                c_weston_desktop_shell_desktop_ready ds_ptr
-        else if interface == "wl_output"
-        then createOutput desktop_ptr id
-        else return ()
+    case interface of
+        "weston_desktop_shell" -> do display_ptr <- desktopDisplay <$> peek desktop_ptr
+                                     ds_ptr <- castPtr <$> c_display_bind display_ptr id c_weston_desktop_shell_interface 1
+                                     peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopShell = ds_ptr }
+                                     l_ptr <- new =<< Listener <$> mkDesktopShellConfigureForeign desktopShellConfigure
+                                                               <*> mkDesktopShellPrepareLockSurfaceForeign desktopShellPrepareLockSurface
+                                                               <*> mkDesktopShellGrabCursorForeign desktopShellGrabCursor
+                                     c_weston_desktop_shell_add_listener ds_ptr l_ptr desktop_ptr
+                                     c_weston_desktop_shell_desktop_ready ds_ptr
+        "wl_output" -> createOutput desktop_ptr id
+        _ -> return ()
 
 globalHandlerRemove _ _ interface_cs _ d_ptr = do
     interface <- peekCString interface_cs
-    if interface == "wl_output"
-        then outputDestroy =<< desktopOutput <$> peek (castPtr d_ptr)
-        else return ()
+    case interface of
+        "wl_output" -> outputDestroy =<< desktopOutput <$> peek (castPtr d_ptr)
+        _ -> return ()
 
 displayCreate = alloca $ \argv -> c_display_create 0 argv >>= newForeignPtr c_display_destroy
 
