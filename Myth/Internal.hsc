@@ -311,13 +311,6 @@ instance Storable Status where
         #{poke struct status, check_fd} ptr check_fd
         #{poke struct status, check_task} ptr check_task
         #{poke struct status, show_clock} ptr show_clock
-
-        -- Free any existing recording_title CStrings and channel_icon StablePtrs, then the array
-        old_encoders <- take <$> #{peek struct status, num_encoders} ptr <*> (iterate (flip advancePtr 1) <$> #{peek struct status, encoders} ptr :: IO [Ptr Encoder])
-        mapM_ free =<< mapM #{peek struct encoder, recording_title} old_encoders
-        mapM_ freeStablePtr =<< mapM #{peek struct encoder, channel_icon} old_encoders
-        free =<< #{peek struct status, encoders} ptr
-
         #{poke struct status, num_encoders} ptr (length encoders)
         #{poke struct status, encoders} ptr =<< newArray encoders
 
