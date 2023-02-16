@@ -313,8 +313,8 @@ main = do
         grabSurfaceCreate desktop_ptr
         statusConfigure status_ptr
         c_display_run display_ptr
-        finalizeForeignPtr status_fp
-        finalizeForeignPtr desktop_fp
+        --finalizeForeignPtr status_fp
+        --finalizeForeignPtr desktop_fp
         )
 
 -- f([fps]) -> f([ptrs])
