@@ -39,7 +39,7 @@ redrawHandler _ d_ptr = do
     xpsurface <- XP.mkSurface =<< c_window_get_surface window_ptr
     XP.manageSurface xpsurface
     case (encoders, show_clock) of (_:_, False) -> do drawStatus xpsurface (fromIntegral w) (fromIntegral h) encoders
-                                                      peek status_ptr >>= \status -> poke status_ptr status { statusShowClock = True }
+                                                      pokeByteOff status_ptr #{offset struct status, show_clock} True
                                    otherwise -> drawClock xpsurface (fromIntegral w) (fromIntegral h) encoders
 
 buttonHandler _ input_ptr _ _ state d_ptr = do
@@ -121,18 +121,9 @@ alertTouchDownHandler _ input_ptr _ _ _ x _ d_ptr = do
         freeHaskellFunPtr hide_fp
         hide_task <- Task <$> mkTimerTaskForeign (alertHide node_fps)
         withForeignPtrs node_fps $ \node_ptrs -> peek alert_ptr >>= \alert -> poke alert_ptr alert { alertNodeButtons = node_ptrs, alertHideTask = hide_task }
-    peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = True }
+    pokeByteOff alert_ptr #{offset struct alert, show_dashboard} True
     with (ITimerSpec (TimeSpec 0 0) (TimeSpec 30 0)) $ \its_ptr -> c_timerfd_settime hide_fd 0 its_ptr nullPtr
     c_widget_schedule_redraw widget_ptr
-
--- f([fps]) -> f([ptrs])
-withForeignPtrs :: [ForeignPtr a] -> ([Ptr a] -> IO b) -> IO ()
-withForeignPtrs [] _ = return ()
-withForeignPtrs (fp:fps) f = withForeignPtr fp $ \ptr -> withForeignPtrs' [ptr] fps f
-
-withForeignPtrs' [] [] f = return ()
-withForeignPtrs' ptrs [] f = f ptrs >> return ()
-withForeignPtrs' ptrs (fp:fps) f = withForeignPtr fp $ \ptr -> withForeignPtrs' (ptrs ++ [ptr]) fps f
 
 alertCreate display_ptr window_ptr = do
     mallocForeignPtr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
@@ -217,9 +208,7 @@ desktopShellConfigure d_ptr ds_ptr edges wl_surface_ptr w h = do
 
 desktopShellPrepareLockSurface _ = c_weston_desktop_shell_unlock
 
-desktopShellGrabCursor d_ptr _ _ = do
-    let desktop_ptr = castPtr d_ptr
-    peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopCursorType = cursorLeftPtr }
+desktopShellGrabCursor d_ptr _ _ = pokeByteOff d_ptr #{offset struct desktop, grab_cursor} (unCursorType cursorLeftPtr)
 
 backgroundCreate desktop_ptr = do
     mallocForeignPtr >>= \bg_fp -> withForeignPtr bg_fp $ \bg_ptr -> do
@@ -228,7 +217,7 @@ backgroundCreate desktop_ptr = do
         window_ptr <- c_window_create_custom display_ptr
         peek bg_ptr >>= \bg -> poke bg_ptr bg { backgroundSurface = base, backgroundWindow = window_ptr }
         widget_ptr <- c_window_add_widget window_ptr $ castPtr bg_ptr
-        peek bg_ptr >>= \bg -> poke bg_ptr bg { backgroundWidget = widget_ptr }
+        pokeByteOff bg_ptr #{offset struct background, widget} widget_ptr
         c_window_set_user_data window_ptr $ castPtr bg_ptr
         c_widget_set_transparent widget_ptr 0
         return bg_fp
@@ -238,20 +227,20 @@ grabSurfaceEnterHandler _ _ _ _ d_ptr = desktopCursorType <$> peek (castPtr d_pt
 grabSurfaceCreate desktop_ptr = do
     Desktop display_ptr ds_ptr _ _ _ _ <- peek desktop_ptr
     window_ptr <- c_window_create_custom display_ptr
-    peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopWindow = window_ptr }
+    pokeByteOff desktop_ptr #{offset struct desktop, grab_window} window_ptr
     c_window_set_user_data window_ptr $ castPtr desktop_ptr
     s <- c_window_get_wl_surface window_ptr
     c_weston_desktop_shell_set_grab_surface ds_ptr s
     widget_ptr <- c_window_add_widget window_ptr $ castPtr desktop_ptr
     c_widget_set_allocation widget_ptr 0 0 1 1
     c_widget_set_enter_handler widget_ptr =<< mkGrabSurfaceEnterHandlerForeign grabSurfaceEnterHandler
-    peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopWidget = widget_ptr }
+    pokeByteOff desktop_ptr #{offset struct desktop, grab_widget} widget_ptr
 
 outputInit o_ptr desktop_ptr = do
     ds_ptr <- desktopShell <$> peek desktop_ptr
     wlo_ptr <- outputWlOutput <$> peek o_ptr
     backgroundCreate desktop_ptr >>= (`withForeignPtr` \bg_ptr -> do
-        peek o_ptr >>= \o -> poke o_ptr o { outputBackground = bg_ptr }
+        pokeByteOff o_ptr #{offset struct output, background} bg_ptr
         window_ptr <- backgroundWindow <$> peek bg_ptr
         s <- c_window_get_wl_surface window_ptr
         c_weston_desktop_shell_set_background ds_ptr wlo_ptr s
@@ -261,8 +250,8 @@ createOutput desktop_ptr id = do
     Desktop display_ptr ds_ptr _ _ _ gc <- peek desktop_ptr
     wlo_ptr <- c_display_bind display_ptr id c_wl_output_interface 2
     mallocForeignPtr >>= (`withForeignPtr` \o_ptr -> do
-        peek o_ptr >>= \o -> poke o_ptr o { outputWlOutput = wlo_ptr }
-        peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopOutput = o_ptr }
+        pokeByteOff o_ptr #{offset struct output, output} wlo_ptr
+        pokeByteOff desktop_ptr #{offset struct desktop, output} o_ptr
         if ds_ptr /= nullPtr
             then outputInit o_ptr desktop_ptr
             else return ()
@@ -274,7 +263,7 @@ globalHandler _ id interface_cs _ d_ptr = do
     case interface of
         "weston_desktop_shell" -> do display_ptr <- desktopDisplay <$> peek desktop_ptr
                                      ds_ptr <- castPtr <$> c_display_bind display_ptr id c_weston_desktop_shell_interface 1
-                                     peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopShell = ds_ptr }
+                                     pokeByteOff desktop_ptr #{offset struct desktop, shell} ds_ptr
                                      l_ptr <- new =<< Listener <$> mkDesktopShellConfigureForeign desktopShellConfigure
                                                                <*> mkDesktopShellPrepareLockSurfaceForeign desktopShellPrepareLockSurface
                                                                <*> mkDesktopShellGrabCursorForeign desktopShellGrabCursor
@@ -301,18 +290,18 @@ outputDestroy o_ptr = do
     c_wl_output_destroy wlo_ptr
 
 desktopCreate = do
-    mallocForeignPtr >>= \desktop_fp -> withForeignPtr desktop_fp $ \desktop_ptr -> do
-        FC.addForeignPtrFinalizer desktop_fp $ peek desktop_ptr >>= \(Desktop _ ds_ptr o_ptr window_ptr widget_ptr _) -> do
+    mallocForeignPtr >>= \desktop_fp -> do
+        FC.addForeignPtrFinalizer desktop_fp (withForeignPtr desktop_fp $ \desktop_ptr -> peek desktop_ptr >>= \(Desktop _ ds_ptr o_ptr window_ptr widget_ptr _) -> do
             windowDestroy widget_ptr window_ptr
             outputDestroy o_ptr
-            c_weston_desktop_shell_destroy ds_ptr
+            c_weston_desktop_shell_destroy ds_ptr)
         return desktop_fp
 
 main = do
     displayCreate >>= (`withForeignPtr` \display_ptr -> do
     desktopCreate >>= \desktop_fp -> withForeignPtr desktop_fp $ \desktop_ptr -> do
     statusCreate display_ptr 800 480 >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
-        peek desktop_ptr >>= \desktop -> poke desktop_ptr desktop { desktopDisplay = display_ptr }
+        pokeByteOff desktop_ptr #{offset struct desktop, display} display_ptr
         c_display_set_user_data display_ptr $ castPtr desktop_ptr
         c_display_set_global_handler display_ptr =<< mkGlobalHandlerForeign globalHandler
         c_display_set_global_handler_remove display_ptr =<< mkGlobalHandlerRemoveForeign globalHandlerRemove
@@ -327,4 +316,13 @@ main = do
         finalizeForeignPtr status_fp
         finalizeForeignPtr desktop_fp
         )
+
+-- f([fps]) -> f([ptrs])
+withForeignPtrs :: [ForeignPtr a] -> ([Ptr a] -> IO b) -> IO ()
+withForeignPtrs [] _ = return ()
+withForeignPtrs (fp:fps) f = withForeignPtr fp $ \ptr -> withForeignPtrs' [ptr] fps f
+
+withForeignPtrs' [] [] f = return ()
+withForeignPtrs' ptrs [] f = f ptrs >> return ()
+withForeignPtrs' ptrs (fp:fps) f = withForeignPtr fp $ \ptr -> withForeignPtrs' (ptrs ++ [ptr]) fps f
 
