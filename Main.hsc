@@ -300,13 +300,14 @@ desktopCreate = do
 main = do
     displayCreate >>= (`withForeignPtr` \display_ptr -> do
         desktopCreate >>= (`withForeignPtr` \desktop_ptr -> do
-            statusCreate display_ptr 800 480 >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
+            statusCreate display_ptr 800 480 >>= (`withForeignPtr` \status_ptr -> do
                 pokeByteOff desktop_ptr #{offset struct desktop, display} display_ptr
                 c_display_set_user_data display_ptr $ castPtr desktop_ptr
                 c_display_set_global_handler display_ptr =<< mkGlobalHandlerForeign globalHandler
                 c_display_set_global_handler_remove display_ptr =<< mkGlobalHandlerRemoveForeign globalHandlerRemove
                 o_ptr <- desktopOutput <$> peek desktop_ptr
                 bg_ptr <- outputBackground <$> peek o_ptr
+                -- Is this safe? Is bg_ptr uninitialised?
                 when (bg_ptr == nullPtr) $ outputInit o_ptr desktop_ptr
 
 
