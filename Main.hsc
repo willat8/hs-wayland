@@ -303,6 +303,7 @@ main = do
             statusCreate display_ptr 800 480 >>= (`withForeignPtr` \status_ptr -> do
                 pokeByteOff desktop_ptr #{offset struct desktop, display} display_ptr
                 c_display_set_user_data display_ptr $ castPtr desktop_ptr
+                -- Where do these funps get freed?
                 c_display_set_global_handler display_ptr =<< mkGlobalHandlerForeign globalHandler
                 c_display_set_global_handler_remove display_ptr =<< mkGlobalHandlerRemoveForeign globalHandlerRemove
                 o_ptr <- desktopOutput <$> peek desktop_ptr
