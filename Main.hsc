@@ -299,23 +299,23 @@ desktopCreate = do
 
 main = do
     displayCreate >>= (`withForeignPtr` \display_ptr -> do
-    desktopCreate >>= \desktop_fp -> withForeignPtr desktop_fp $ \desktop_ptr -> do
-    statusCreate display_ptr 800 480 >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
-        pokeByteOff desktop_ptr #{offset struct desktop, display} display_ptr
-        c_display_set_user_data display_ptr $ castPtr desktop_ptr
-        c_display_set_global_handler display_ptr =<< mkGlobalHandlerForeign globalHandler
-        c_display_set_global_handler_remove display_ptr =<< mkGlobalHandlerRemoveForeign globalHandlerRemove
-        o_ptr <- desktopOutput <$> peek desktop_ptr
-        bg_ptr <- outputBackground <$> peek o_ptr
-        if bg_ptr == nullPtr
-            then outputInit o_ptr desktop_ptr
-            else return ()
-        grabSurfaceCreate desktop_ptr
-        statusConfigure status_ptr
-        c_display_run display_ptr
-        --finalizeForeignPtr status_fp
-        --finalizeForeignPtr desktop_fp
+        desktopCreate >>= (`withForeignPtr` \desktop_ptr -> do
+            statusCreate display_ptr 800 480 >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
+                pokeByteOff desktop_ptr #{offset struct desktop, display} display_ptr
+                c_display_set_user_data display_ptr $ castPtr desktop_ptr
+                c_display_set_global_handler display_ptr =<< mkGlobalHandlerForeign globalHandler
+                c_display_set_global_handler_remove display_ptr =<< mkGlobalHandlerRemoveForeign globalHandlerRemove
+                o_ptr <- desktopOutput <$> peek desktop_ptr
+                bg_ptr <- outputBackground <$> peek o_ptr
+                when (bg_ptr == nullPtr) $ outputInit o_ptr desktop_ptr
+
+
+                grabSurfaceCreate desktop_ptr
+                statusConfigure status_ptr
+                c_display_run display_ptr
+            )
         )
+    )
 
 -- f([fps]) -> f([ptrs])
 withForeignPtrs :: [ForeignPtr a] -> ([Ptr a] -> IO b) -> IO ()
