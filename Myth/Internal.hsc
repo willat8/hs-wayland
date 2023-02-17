@@ -328,8 +328,8 @@ foreign import ccall unsafe "display_bind"
 foreign import ccall unsafe "display_create"
     c_display_create :: CInt -> Ptr CString -> IO (Ptr Display)
 
-foreign import ccall unsafe "&display_destroy"
-    c_display_destroy :: FinalizerPtr Display
+foreign import ccall unsafe "display_destroy"
+    c_display_destroy :: Ptr Display -> IO ()
 
 foreign import ccall unsafe "display_get_serial"
     c_display_get_serial :: Ptr Display -> IO (Word32)

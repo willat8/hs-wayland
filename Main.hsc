@@ -278,7 +278,17 @@ globalHandlerRemove _ _ interface_cs _ d_ptr = do
         "wl_output" -> outputDestroy =<< desktopOutput <$> peek (castPtr d_ptr)
         _ -> return ()
 
-displayCreate = alloca $ \argv -> c_display_create 0 argv >>= newForeignPtr c_display_destroy
+displayCreate = do
+    display_ptr <- alloca $ \argv -> c_display_create 0 argv
+    global_handler_fp <- mkGlobalHandlerForeign globalHandler
+    global_handler_remove_fp <- mkGlobalHandlerRemoveForeign globalHandlerRemove
+    c_display_set_global_handler display_ptr global_handler_fp
+    c_display_set_global_handler_remove display_ptr global_handler_remove_fp
+    display_fp <- FC.newForeignPtr display_ptr (withForeignPtr display_fp $ \display_ptr -> do
+        freeHaskellFunPtr global_handler_fp
+        freeHaskellFunPtr global_handler_remove_fp
+        c_display_destroy display_ptr)
+    return display_fp
 
 windowDestroy widget_ptr window_ptr = do
     c_widget_destroy widget_ptr
@@ -310,14 +320,9 @@ main = do
                 bg_ptr <- outputBackground <$> peek o_ptr
                 -- Is this safe? Is bg_ptr uninitialised?
                 when (bg_ptr == nullPtr) $ outputInit o_ptr desktop_ptr
-
-
                 grabSurfaceCreate desktop_ptr
                 statusConfigure status_ptr
-                c_display_run display_ptr
-            )
-        )
-    )
+                c_display_run display_ptr)))
 
 -- f([fps]) -> f([ptrs])
 withForeignPtrs :: [ForeignPtr a] -> ([Ptr a] -> IO b) -> IO ()
