@@ -284,7 +284,8 @@ displayCreate = do
     global_handler_remove_fp <- mkGlobalHandlerRemoveForeign globalHandlerRemove
     c_display_set_global_handler display_ptr global_handler_fp
     c_display_set_global_handler_remove display_ptr global_handler_remove_fp
-    display_fp <- FC.newForeignPtr display_ptr (withForeignPtr display_fp $ \display_ptr -> do
+    display_fp <- newForeignPtr_ display_ptr
+    FC.addForeignPtrFinalizer display_fp (withForeignPtr display_fp $ \display_ptr -> do
         freeHaskellFunPtr global_handler_fp
         freeHaskellFunPtr global_handler_remove_fp
         c_display_destroy display_ptr)
