@@ -280,14 +280,14 @@ globalHandlerRemove _ _ interface_cs _ d_ptr = do
 
 displayCreate = do
     display_ptr <- alloca $ \argv -> c_display_create 0 argv
-    global_handler_fp <- mkGlobalHandlerForeign globalHandler
-    global_handler_remove_fp <- mkGlobalHandlerRemoveForeign globalHandlerRemove
-    c_display_set_global_handler display_ptr global_handler_fp
-    c_display_set_global_handler_remove display_ptr global_handler_remove_fp
+    --global_handler_fp <- mkGlobalHandlerForeign globalHandler
+    --global_handler_remove_fp <- mkGlobalHandlerRemoveForeign globalHandlerRemove
+    --c_display_set_global_handler display_ptr global_handler_fp
+    --c_display_set_global_handler_remove display_ptr global_handler_remove_fp
     display_fp <- newForeignPtr_ display_ptr
     FC.addForeignPtrFinalizer display_fp (withForeignPtr display_fp $ \display_ptr -> do
-        freeHaskellFunPtr global_handler_fp
-        freeHaskellFunPtr global_handler_remove_fp
+        --freeHaskellFunPtr global_handler_fp
+        --freeHaskellFunPtr global_handler_remove_fp
         c_display_destroy display_ptr)
     return display_fp
 
@@ -314,7 +314,6 @@ main = do
             statusCreate display_ptr 800 480 >>= (`withForeignPtr` \status_ptr -> do
                 pokeByteOff desktop_ptr #{offset struct desktop, display} display_ptr
                 c_display_set_user_data display_ptr $ castPtr desktop_ptr
-                -- Where do these funps get freed?
                 c_display_set_global_handler display_ptr =<< mkGlobalHandlerForeign globalHandler
                 c_display_set_global_handler_remove display_ptr =<< mkGlobalHandlerRemoveForeign globalHandlerRemove
                 o_ptr <- desktopOutput <$> peek desktop_ptr
