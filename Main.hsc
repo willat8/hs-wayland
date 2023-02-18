@@ -194,32 +194,32 @@ nodeButtonCreate alert_ptr hostname x = do
             c_widget_destroy widget_ptr
         return node_fp
 
-backgroundConfigure _ _ _ window_ptr w h = do
-    bg_ptr <- castPtr <$> c_window_get_user_data window_ptr
+backgroundConfigure _ _ _ window_ptr w h = dbg "_backgroundConfigure_" >> do
+    bg_ptr <- castPtr <$> (dbg "backgroundConfigure: c_window_get_user_data" >> c_window_get_user_data window_ptr)
     Background (Surface configure_funp) _ widget_ptr <- peek bg_ptr
-    c_widget_schedule_resize widget_ptr w h
-    freeHaskellFunPtr configure_funp
+    dbg "backgroundConfigure: c_widget_schedule_resize" >> c_widget_schedule_resize widget_ptr w h
+    dbg "backgroundConfigure: freeHaskellFunPtr" >> freeHaskellFunPtr configure_funp
 
-desktopShellConfigure d_ptr ds_ptr edges wl_surface_ptr w h = do
-    window_ptr <- castPtr <$> c_wl_surface_get_user_data wl_surface_ptr
-    surface_ptr <- castPtr <$> c_window_get_user_data window_ptr
+desktopShellConfigure d_ptr ds_ptr edges wl_surface_ptr w h = dbg "_desktopShellConfigure_" >> do
+    window_ptr <- castPtr <$> (dbg "desktopShellConfigure: c_wl_surface_get_user_data" >> c_wl_surface_get_user_data wl_surface_ptr)
+    surface_ptr <- castPtr <$> (dbg "desktopShellConfigure: c_window_get_user_data" >> c_window_get_user_data window_ptr)
     Surface configure_funp <- peek surface_ptr
     mkSurfaceConfigure configure_funp d_ptr ds_ptr edges window_ptr w h
 
-desktopShellPrepareLockSurface _ = c_weston_desktop_shell_unlock
+desktopShellPrepareLockSurface _ x = dbg "_desktopShellPrepareLockSurface_" >> c_weston_desktop_shell_unlock x
 
-desktopShellGrabCursor d_ptr _ _ = pokeByteOff d_ptr #{offset struct desktop, grab_cursor} (unCursorType cursorLeftPtr)
+desktopShellGrabCursor d_ptr _ _ = dbg "_desktopShellGrabCursor_" >> pokeByteOff d_ptr #{offset struct desktop, grab_cursor} (unCursorType cursorLeftPtr)
 
-backgroundCreate desktop_ptr = do
+backgroundCreate desktop_ptr = dbg "_backgroundCreate_" >> do
     mallocForeignPtr >>= \bg_fp -> withForeignPtr bg_fp $ \bg_ptr -> do
         display_ptr <- desktopDisplay <$> peek desktop_ptr
         base <- Surface <$> mkSurfaceConfigureForeign backgroundConfigure
-        window_ptr <- c_window_create_custom display_ptr
+        window_ptr <- (dbg "backgroundCreate: c_window_create_custom" >> c_window_create_custom display_ptr)
         peek bg_ptr >>= \bg -> poke bg_ptr bg { backgroundSurface = base, backgroundWindow = window_ptr }
-        widget_ptr <- c_window_add_widget window_ptr (castPtr bg_ptr)
+        widget_ptr <- (dbg "backgroundCreate: c_window_add_widget" >> c_window_add_widget window_ptr (castPtr bg_ptr))
         pokeByteOff bg_ptr #{offset struct background, widget} widget_ptr
-        c_window_set_user_data window_ptr (castPtr bg_ptr)
-        c_widget_set_transparent widget_ptr 0
+        dbg "backgroundCreate: c_window_set_user_data" >> c_window_set_user_data window_ptr (castPtr bg_ptr)
+        dbg "backgroundCreate: c_widget_set_transparent" >> c_widget_set_transparent widget_ptr 0
         return bg_fp
 
 grabSurfaceEnterHandler _ _ _ _ d_ptr = dbg "_grabSurfaceEnterHandler_" >> desktopCursorType <$> peek (castPtr d_ptr)
