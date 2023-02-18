@@ -51,7 +51,7 @@ touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
 keyHandler _ _ _ _ _ state d_ptr = do
     return ()
 
-statusConfigure status_ptr = do
+statusConfigure status_ptr = dbg "_statusConfigure_" >> do
     Status display_ptr window_ptr widget_ptr w h check_fd _ _ _ <- peek status_ptr
     c_display_watch_fd display_ptr check_fd epollin (#{ptr struct status, check_task} status_ptr)
     with (ITimerSpec (TimeSpec 30 0) (TimeSpec 1 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
@@ -62,7 +62,7 @@ statusConfigure status_ptr = do
     c_window_set_key_handler window_ptr =<< mkKeyHandlerForeign keyHandler
     c_window_schedule_resize window_ptr w h
 
-statusCreate display_ptr w h = do
+statusCreate display_ptr w h = dbg "_statusCreate_" >> do
     mallocForeignPtr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
         window_ptr <- c_window_create display_ptr
         widget_ptr <- c_window_add_widget window_ptr $ castPtr status_ptr
@@ -300,7 +300,7 @@ desktopCreate = dbg "_desktopCreate_" >> do
             dbg "desktop finalizer: c_weston_desktop_shell_destroy" >> c_weston_desktop_shell_destroy ds_ptr)
         return desktop_fp
 
-main = dbg "_main_" >> do
+main = dbg "----------------" >> dbg "_main_" >> do
     global_handler_fp <- mkGlobalHandlerForeign globalHandler
     global_handler_remove_fp <- mkGlobalHandlerRemoveForeign globalHandlerRemove
     dbg "main: displayCreate" >> displayCreate global_handler_fp global_handler_remove_fp >>= (`withForeignPtr` \display_ptr -> do
