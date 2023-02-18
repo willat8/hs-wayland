@@ -278,16 +278,12 @@ globalHandlerRemove _ _ interface_cs _ d_ptr = do
         "wl_output" -> outputDestroy =<< desktopOutput <$> peek (castPtr d_ptr)
         _ -> return ()
 
-displayCreate = do
+displayCreate global_handler_fp global_handler_remove_fp = do
     display_ptr <- alloca $ \argv -> c_display_create 0 argv
-    --global_handler_fp <- mkGlobalHandlerForeign globalHandler
-    --global_handler_remove_fp <- mkGlobalHandlerRemoveForeign globalHandlerRemove
-    --c_display_set_global_handler display_ptr global_handler_fp
-    --c_display_set_global_handler_remove display_ptr global_handler_remove_fp
     display_fp <- newForeignPtr_ display_ptr
     FC.addForeignPtrFinalizer display_fp (withForeignPtr display_fp $ \display_ptr -> do
-        --freeHaskellFunPtr global_handler_fp
-        --freeHaskellFunPtr global_handler_remove_fp
+        freeHaskellFunPtr global_handler_fp
+        freeHaskellFunPtr global_handler_remove_fp
         c_display_destroy display_ptr)
     return display_fp
 
@@ -309,13 +305,15 @@ desktopCreate = do
         return desktop_fp
 
 main = do
-    displayCreate >>= (`withForeignPtr` \display_ptr -> do
+    global_handler_fp <- mkGlobalHandlerForeign globalHandler
+    global_handler_remove_fp <- mkGlobalHandlerRemoveForeign globalHandlerRemove
+    displayCreate global_handler_fp global_handler_remove_fp >>= (`withForeignPtr` \display_ptr -> do
         desktopCreate >>= (`withForeignPtr` \desktop_ptr -> do
             statusCreate display_ptr 800 480 >>= (`withForeignPtr` \status_ptr -> do
                 pokeByteOff desktop_ptr #{offset struct desktop, display} display_ptr
                 c_display_set_user_data display_ptr $ castPtr desktop_ptr
-                c_display_set_global_handler display_ptr =<< mkGlobalHandlerForeign globalHandler
-                c_display_set_global_handler_remove display_ptr =<< mkGlobalHandlerRemoveForeign globalHandlerRemove
+                c_display_set_global_handler display_ptr global_handler_fp
+                c_display_set_global_handler_remove display_ptr global_handler_remove_fp
                 o_ptr <- desktopOutput <$> peek desktop_ptr
                 bg_ptr <- outputBackground <$> peek o_ptr
                 -- Is this safe? Is bg_ptr uninitialised?
