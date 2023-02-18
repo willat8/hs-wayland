@@ -222,57 +222,57 @@ backgroundCreate desktop_ptr = do
         c_widget_set_transparent widget_ptr 0
         return bg_fp
 
-grabSurfaceEnterHandler _ _ _ _ d_ptr = desktopCursorType <$> peek (castPtr d_ptr)
+grabSurfaceEnterHandler _ _ _ _ d_ptr = dbg "_grabSurfaceEnterHandler_" >> desktopCursorType <$> peek (castPtr d_ptr)
 
-grabSurfaceCreate desktop_ptr = do
+grabSurfaceCreate desktop_ptr = dbg "_grabSurfaceCreate_" >> do
     Desktop display_ptr ds_ptr _ _ _ _ <- peek desktop_ptr
-    window_ptr <- c_window_create_custom display_ptr
+    window_ptr <- (dbg "grabSurfaceCreate: c_window_create_custom" >> c_window_create_custom display_ptr)
     pokeByteOff desktop_ptr #{offset struct desktop, grab_window} window_ptr
-    c_window_set_user_data window_ptr (castPtr desktop_ptr)
-    s <- c_window_get_wl_surface window_ptr
-    c_weston_desktop_shell_set_grab_surface ds_ptr s
-    widget_ptr <- c_window_add_widget window_ptr (castPtr desktop_ptr)
-    c_widget_set_allocation widget_ptr 0 0 1 1
-    c_widget_set_enter_handler widget_ptr =<< mkGrabSurfaceEnterHandlerForeign grabSurfaceEnterHandler
+    dbg "grabSurfaceCreate: c_window_set_user_data" >> c_window_set_user_data window_ptr (castPtr desktop_ptr)
+    s <- (dbg "grabSurfaceCreate: c_window_get_wl_surface" >> c_window_get_wl_surface window_ptr)
+    dbg "grabSurfaceCreate: c_weston_desktop_shell_set_grab_surface" >> c_weston_desktop_shell_set_grab_surface ds_ptr s
+    widget_ptr <- (dbg "grabSurfaceCreate: c_window_add_widget" >> c_window_add_widget window_ptr (castPtr desktop_ptr))
+    dbg "grabSurfaceCreate: c_widget_set_allocation" >> c_widget_set_allocation widget_ptr 0 0 1 1
+    dbg "grabSurfaceCreate: c_widget_set_enter_handler" >> (c_widget_set_enter_handler widget_ptr =<< mkGrabSurfaceEnterHandlerForeign grabSurfaceEnterHandler)
     pokeByteOff desktop_ptr #{offset struct desktop, grab_widget} widget_ptr
 
-outputInit o_ptr desktop_ptr = do
+outputInit o_ptr desktop_ptr = dbg "_outputInit_" >> do
     ds_ptr <- desktopShell <$> peek desktop_ptr
     wlo_ptr <- outputWlOutput <$> peek o_ptr
-    backgroundCreate desktop_ptr >>= (`withForeignPtr` \bg_ptr -> do
+    dbg "outputInit: backgroundCreate" >> backgroundCreate desktop_ptr >>= (`withForeignPtr` \bg_ptr -> do
         pokeByteOff o_ptr #{offset struct output, background} bg_ptr
         window_ptr <- backgroundWindow <$> peek bg_ptr
-        s <- c_window_get_wl_surface window_ptr
-        c_weston_desktop_shell_set_background ds_ptr wlo_ptr s)
+        s <- (dbg "outputInit: c_window_get_wl_surface" >> c_window_get_wl_surface window_ptr)
+        dbg "outputInit: c_weston_desktop_shell_set_background" >> c_weston_desktop_shell_set_background ds_ptr wlo_ptr s)
 
-createOutput desktop_ptr id = do
+createOutput desktop_ptr id = dbg "_createOutput_" >> do
     Desktop display_ptr ds_ptr _ _ _ gc <- peek desktop_ptr
-    wlo_ptr <- c_display_bind display_ptr id c_wl_output_interface 2
+    wlo_ptr <- (dbg "createOutput: c_display_bind" >> c_display_bind display_ptr id c_wl_output_interface 2)
     mallocForeignPtr >>= (`withForeignPtr` \o_ptr -> do
         pokeByteOff o_ptr #{offset struct output, output} wlo_ptr
         pokeByteOff desktop_ptr #{offset struct desktop, output} o_ptr
-        when (ds_ptr /= nullPtr) $ outputInit o_ptr desktop_ptr)
+        when (ds_ptr /= nullPtr) $ dbg "createOutput: outputInit" >> outputInit o_ptr desktop_ptr)
 
-globalHandler _ id interface_cs _ d_ptr = do
+globalHandler _ id interface_cs _ d_ptr = dbg "_globalHandler_" >> do
     let desktop_ptr = castPtr d_ptr
     interface <- peekCString interface_cs
     case interface of
         "weston_desktop_shell" -> do display_ptr <- desktopDisplay <$> peek desktop_ptr
-                                     ds_ptr <- castPtr <$> c_display_bind display_ptr id c_weston_desktop_shell_interface 1
+                                     ds_ptr <- castPtr <$> (dbg "globalHandler: c_display_bind" >> c_display_bind display_ptr id c_weston_desktop_shell_interface 1)
                                      pokeByteOff desktop_ptr #{offset struct desktop, shell} ds_ptr
                                      l_ptr <- new =<< Listener <$> mkDesktopShellConfigureForeign desktopShellConfigure
                                                                <*> mkDesktopShellPrepareLockSurfaceForeign desktopShellPrepareLockSurface
                                                                <*> mkDesktopShellGrabCursorForeign desktopShellGrabCursor
-                                     c_weston_desktop_shell_add_listener ds_ptr l_ptr desktop_ptr
-                                     c_weston_desktop_shell_desktop_ready ds_ptr
-        "wl_output" -> createOutput desktop_ptr id
-        _ -> return ()
+                                     dbg "globalHandler: c_weston_desktop_shell_add_listener" >> c_weston_desktop_shell_add_listener ds_ptr l_ptr desktop_ptr
+                                     dbg "globalHandler: c_weston_desktop_shell_desktop_ready" >> c_weston_desktop_shell_desktop_ready ds_ptr
+        "wl_output" -> dbg "globalHandler: createOutput" >> createOutput desktop_ptr id
+        _ -> dbg "globalHandler: noop" >> return ()
 
-globalHandlerRemove _ _ interface_cs _ d_ptr = do
+globalHandlerRemove _ _ interface_cs _ d_ptr = dbg "_globalHandlerRemove_" >> do
     interface <- peekCString interface_cs
     case interface of
-        "wl_output" -> outputDestroy =<< desktopOutput <$> peek (castPtr d_ptr)
-        _ -> return ()
+        "wl_output" -> dbg "globalHandlerRemove: outputDestroy" >> (outputDestroy =<< desktopOutput <$> peek (castPtr d_ptr))
+        _ -> dbg "globalHandlerRemove: noop" >> return ()
 
 displayCreate global_handler_fp global_handler_remove_fp = dbg "_displayCreate_" >> do
     display_ptr <- alloca $ \argv -> c_display_create 0 argv
