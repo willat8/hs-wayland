@@ -274,49 +274,49 @@ globalHandlerRemove _ _ interface_cs _ d_ptr = do
         "wl_output" -> outputDestroy =<< desktopOutput <$> peek (castPtr d_ptr)
         _ -> return ()
 
-displayCreate global_handler_fp global_handler_remove_fp = do
+displayCreate global_handler_fp global_handler_remove_fp = dbg "_displayCreate_" >> do
     display_ptr <- alloca $ \argv -> c_display_create 0 argv
     display_fp <- newForeignPtr_ display_ptr
     FC.addForeignPtrFinalizer display_fp (withForeignPtr display_fp $ \display_ptr -> do
-        freeHaskellFunPtr global_handler_fp
-        freeHaskellFunPtr global_handler_remove_fp
-        c_display_destroy display_ptr)
+        dbg "display finalizer: freeHaskellFunPtr" >> freeHaskellFunPtr global_handler_fp
+        dbg "display finalizer: freeHaskellFunPtr" >> freeHaskellFunPtr global_handler_remove_fp
+        dbg "display finalizer: c_display_destroy" >> c_display_destroy display_ptr)
     return display_fp
 
-windowDestroy widget_ptr window_ptr = do
-    c_widget_destroy widget_ptr
-    c_window_destroy window_ptr
+windowDestroy widget_ptr window_ptr = dbg "_windowDestroy_" >> do
+    dbg "windowDestroy: c_widget_destroy" >> c_widget_destroy widget_ptr
+    dbg "windowDestroy: c_window_destroy" >> c_window_destroy window_ptr
 
-outputDestroy o_ptr = do
+outputDestroy o_ptr = dbg "_outputDestroy_" >> do
     Output wlo_ptr bg_ptr <- peek o_ptr
     peek bg_ptr >>= \(Background _ window_ptr widget_ptr) -> windowDestroy widget_ptr window_ptr
-    c_wl_output_destroy wlo_ptr
+    dbg "outputDestroy: c_wl_output_destroy" >> c_wl_output_destroy wlo_ptr
 
-desktopCreate = do
+desktopCreate = dbg "_desktopCreate_" >> do
     mallocForeignPtr >>= \desktop_fp -> do
         FC.addForeignPtrFinalizer desktop_fp (withForeignPtr desktop_fp $ \desktop_ptr -> peek desktop_ptr >>= \(Desktop _ ds_ptr o_ptr window_ptr widget_ptr _) -> do
-            windowDestroy widget_ptr window_ptr
-            outputDestroy o_ptr
-            c_weston_desktop_shell_destroy ds_ptr)
+            dbg "desktop finalizer: windowDestroy" >> windowDestroy widget_ptr window_ptr
+            dbg "desktop finalizer: outputDestroy" >> outputDestroy o_ptr
+            dbg "desktop finalizer: c_weston_desktop_shell_destroy" >> c_weston_desktop_shell_destroy ds_ptr)
         return desktop_fp
 
-main = do
+main = dbg "_main_" >> do
     global_handler_fp <- mkGlobalHandlerForeign globalHandler
     global_handler_remove_fp <- mkGlobalHandlerRemoveForeign globalHandlerRemove
-    displayCreate global_handler_fp global_handler_remove_fp >>= (`withForeignPtr` \display_ptr -> do
-        desktopCreate >>= (`withForeignPtr` \desktop_ptr -> do
-            statusCreate display_ptr 800 480 >>= (`withForeignPtr` \status_ptr -> do
+    dbg "main: displayCreate" >> displayCreate global_handler_fp global_handler_remove_fp >>= (`withForeignPtr` \display_ptr -> do
+        dbg "main: desktopCreate" >> desktopCreate >>= (`withForeignPtr` \desktop_ptr -> do
+            dbg "main: statusCreate" >> statusCreate display_ptr 800 480 >>= (`withForeignPtr` \status_ptr -> do
                 pokeByteOff desktop_ptr #{offset struct desktop, display} display_ptr
-                c_display_set_user_data display_ptr (castPtr desktop_ptr)
-                c_display_set_global_handler display_ptr global_handler_fp
-                c_display_set_global_handler_remove display_ptr global_handler_remove_fp
+                dbg "main: c_display_set_user_data" >> c_display_set_user_data display_ptr (castPtr desktop_ptr)
+                dbg "main: c_display_set_global_handler" >> c_display_set_global_handler display_ptr global_handler_fp
+                dbg "main: c_display_set_global_handler_remove" >> c_display_set_global_handler_remove display_ptr global_handler_remove_fp
                 o_ptr <- desktopOutput <$> peek desktop_ptr
                 bg_ptr <- outputBackground <$> peek o_ptr
                 -- Is this safe? Is bg_ptr uninitialised?
-                when (bg_ptr == nullPtr) $ outputInit o_ptr desktop_ptr
-                grabSurfaceCreate desktop_ptr
-                statusConfigure status_ptr
-                c_display_run display_ptr)))
+                when (bg_ptr == nullPtr) $ dbg "main: outputInit" >> outputInit o_ptr desktop_ptr
+                dbg "main: grabSurfaceCreate" >> grabSurfaceCreate desktop_ptr
+                dbg "main: statusConfigure" >> statusConfigure status_ptr
+                dbg "main: c_display_run" >> c_display_run display_ptr)))
 
 -- f([fps]) -> f([ptrs])
 withForeignPtrs :: [ForeignPtr a] -> ([Ptr a] -> IO b) -> IO ()
@@ -327,3 +327,5 @@ withForeignPtrs' [] [] f = return ()
 withForeignPtrs' ptrs [] f = f ptrs >> return ()
 withForeignPtrs' ptrs (fp:fps) f = withForeignPtr fp $ \ptr -> withForeignPtrs' (ptrs ++ [ptr]) fps f
 
+dbg :: [Char] -> IO ()
+dbg msg = appendFile "/home/will/myth.log" $ msg ++ "\n"
