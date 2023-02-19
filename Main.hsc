@@ -65,11 +65,11 @@ statusConfigure status_ptr = do
 statusCreate display_ptr w h = do
     mallocForeignPtr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
         window_ptr <- c_window_create display_ptr
-        widget_ptr <- c_window_add_widget window_ptr $ castPtr status_ptr
+        widget_ptr <- c_window_add_widget window_ptr (castPtr status_ptr)
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
         check_task <- Task <$> mkTimerTaskForeign statusCheck
         poke status_ptr (Status display_ptr window_ptr widget_ptr w h check_fd check_task True [])
-        c_window_set_user_data window_ptr $ castPtr status_ptr
+        c_window_set_user_data window_ptr (castPtr status_ptr)
         alertCreate display_ptr window_ptr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
             FC.addForeignPtrFinalizer status_fp $ do
                 finalizeForeignPtr alert_fp
