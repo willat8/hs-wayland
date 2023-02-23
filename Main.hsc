@@ -19,14 +19,8 @@ statusCheck t_ptr _ = do
     Status {statusWidget = widget, statusCheckFd = checkFd} <- peek status_ptr
     fdRead checkFd #{size uint64_t}
     encoders <- getEncodersStatus
-    showClock <- peek status_ptr >>= \status -> return (encoders == statusEncoders status)
-    -- Free any existing recording_title CStrings and channel_icon StablePtrs, then the array
-    old_encoders <- take <$> #{peek struct status, num_encoders} status_ptr <*> (iterate (flip advancePtr 1) <$> #{peek struct status, encoders} status_ptr :: IO [Ptr Encoder])
-    mapM_ free =<< mapM #{peek struct encoder, recording_title} old_encoders
-    mapM_ freeStablePtr =<< mapM #{peek struct encoder, channel_icon} old_encoders
-    free =<< #{peek struct status, encoders} status_ptr
     -- Show the clock when the encoders are unchanged from the last status check
-    peek status_ptr >>= \status -> poke status_ptr status { statusEncoders = encoders, statusShowClock = showClock }
+    peek status_ptr >>= \status -> poke status_ptr status { statusEncoders = encoders, statusShowClock = (encoders == statusEncoders status) }
     c_widget_schedule_redraw widget
 
 resizeHandler _ _ _ d_ptr = do
@@ -128,7 +122,7 @@ alertHide node_fps t_ptr _ = do
     Alert {alertWidget = widget, alertHideFd = hideFd} <- peek alert_ptr
     fdRead hideFd #{size uint64_t}
     mapM_ finalizeForeignPtr node_fps
-    free =<< #{peek struct alert, node_buttons} alert_ptr
+    free <=< #{peek struct alert, node_buttons} $ alert_ptr
     peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = False, alertNodeButtons = [] }
     c_widget_schedule_redraw widget
 
