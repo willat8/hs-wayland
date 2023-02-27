@@ -122,7 +122,7 @@ alertHide node_fps t_ptr _ = do
     Alert {alertWidget = widget, alertHideFd = hideFd} <- peek alert_ptr
     fdRead hideFd #{size uint64_t}
     mapM_ finalizeForeignPtr node_fps
-    free <=< #{peek struct alert, node_buttons} $ alert_ptr
+    free =<< #{peek struct alert, node_buttons} alert_ptr
     peek alert_ptr >>= \alert -> poke alert_ptr alert { alertShowDashboard = False, alertNodeButtons = [] }
     c_widget_schedule_redraw widget
 
