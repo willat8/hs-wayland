@@ -1,6 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
 
 module Myth.Internal where
+import Control.Monad
 import qualified Data.ByteString as B
 import Foreign
 import Foreign.C.String
@@ -260,7 +261,7 @@ instance Storable Alert where
         pihole_health <- #{peek struct alert, pihole_health} ptr
         hue_health <- (fromIntegral :: CInt -> Int) <$> #{peek struct alert, hue_health} ptr
         show_dashboard <- #{peek struct alert, show_dashboard} ptr
-        node_buttons <- id =<< peekArray <$> #{peek struct alert, num_node_buttons} ptr <*> #{peek struct alert, node_buttons} ptr
+        node_buttons <- join $ peekArray <$> #{peek struct alert, num_node_buttons} ptr <*> #{peek struct alert, node_buttons} ptr
         return (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health pihole_health hue_health show_dashboard node_buttons)
     poke ptr (Alert widget_ptr check_fd check_task hide_fd hide_task baby_monitor_health hdhomerun_health mythtv_health pihole_health hue_health show_dashboard node_buttons) = do
         #{poke struct alert, widget} ptr widget_ptr
