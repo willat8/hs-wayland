@@ -19,8 +19,17 @@ statusCheck t_ptr _ = do
     Status {statusWidget = widget, statusCheckFd = checkFd} <- peek status_ptr
     fdRead checkFd #{size uint64_t}
     encoders <- getEncodersStatus
-    -- Show the clock when the encoders are unchanged from the last status check
-    peek status_ptr >>= \status -> poke status_ptr status { statusEncoders = encoders, statusShowClock = (encoders == statusEncoders status) }
+    -- TODO: if the below doesn't work, should we disarm the timer before calling getEncodersStatus, and then re-arm it after? That should avoid multiple statusCheck threads racing with the frees below
+    peek status_ptr >>= \status -> do
+        -- Free any existing recording_title CStrings and channel_icon StablePtrs, then the array
+        old_encoders <- take <$> #{peek struct status, num_encoders} status_ptr <*> (iterate (flip advancePtr 1) <$> #{peek struct status, encoders} status_ptr :: IO [Ptr Encoder])
+        mapM_ free =<< mapM #{peek struct encoder, recording_title} old_encoders
+        mapM_ freeStablePtr =<< mapM #{peek struct encoder, channel_icon} old_encoders
+        free =<< #{peek struct status, encoders} status_ptr
+        poke status_ptr status { statusEncoders = encoders
+                                 -- Show the clock when the encoders are unchanged from the last status check
+                               , statusShowClock = (encoders == statusEncoders status)
+                               }
     c_widget_schedule_redraw widget
 
 resizeHandler _ _ _ d_ptr = do
