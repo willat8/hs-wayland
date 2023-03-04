@@ -285,6 +285,7 @@ backgroundCreate desktop_ptr = do
         c_widget_set_transparent widget_ptr 0
         return bg_fp
 
+-- Reviewed from the bottom up to here
 grabSurfaceEnterHandler _ _ _ _ d_ptr = desktopCursorType <$> peek (castPtr d_ptr)
 
 grabSurfaceCreate desktop_ptr = do
@@ -324,6 +325,7 @@ globalHandler _ id interface_cs _ d_ptr = do
             Desktop {desktopDisplay = display} <- peek desktop_ptr
             ds_ptr <- castPtr <$> c_display_bind display id c_weston_desktop_shell_interface 1
             pokeByteOff desktop_ptr #{offset struct desktop, shell} ds_ptr
+            -- TODO: does l_ptr and the three funps need to be freed anywhere?
             l_ptr <- new =<< Listener <$> mkDesktopShellConfigureForeign desktopShellConfigure
                                       <*> mkDesktopShellPrepareLockSurfaceForeign desktopShellPrepareLockSurface
                                       <*> mkDesktopShellGrabCursorForeign desktopShellGrabCursor
@@ -364,6 +366,7 @@ desktopCreate = do
                                           , desktopWindow = window
                                           , desktopWidget = widget
                                           } -> do
+                -- TODO: need to destroy grabSurfaceEnterHandler here
                 windowDestroy widget window
                 outputDestroy o
                 c_weston_desktop_shell_destroy ds)
@@ -380,8 +383,7 @@ main = do
                 c_display_set_global_handler display_ptr global_handler_fp
                 c_display_set_global_handler_remove display_ptr global_handler_remove_fp
                 o_ptr <- desktopOutput <$> peek desktop_ptr
-                bg_ptr <- outputBackground <$> peek o_ptr
-                when (bg_ptr == nullPtr) $ outputInit o_ptr desktop_ptr
+                join $ when . (== nullPtr) . outputBackground <$> peek o_ptr <*> pure (outputInit o_ptr desktop_ptr)
                 grabSurfaceCreate desktop_ptr
                 statusConfigure status_ptr
                 c_display_run display_ptr)))
