@@ -288,7 +288,7 @@ backgroundCreate desktop_ptr = do
 -- Reviewed from the bottom up to here
 grabSurfaceEnterHandler _ _ _ _ d_ptr = desktopCursorType <$> peek (castPtr d_ptr)
 
-grabSurfaceCreate desktop_ptr = do
+grabSurfaceCreate desktop_fp = withForeignPtr desktop_fp $ \desktop_ptr -> do
     Desktop {desktopDisplay = display, desktopShell = ds} <- peek desktop_ptr
     window_ptr <- c_window_create_custom display
     pokeByteOff desktop_ptr #{offset struct desktop, grab_window} window_ptr
@@ -297,8 +297,10 @@ grabSurfaceCreate desktop_ptr = do
     c_weston_desktop_shell_set_grab_surface ds s
     widget_ptr <- c_window_add_widget window_ptr (castPtr desktop_ptr)
     c_widget_set_allocation widget_ptr 0 0 1 1
-    c_widget_set_enter_handler widget_ptr =<< mkGrabSurfaceEnterHandlerForeign grabSurfaceEnterHandler
+    enter_handler_funp <- mkGrabSurfaceEnterHandlerForeign grabSurfaceEnterHandler
+    c_widget_set_enter_handler widget_ptr enter_handler_funp
     pokeByteOff desktop_ptr #{offset struct desktop, grab_widget} widget_ptr
+    FC.addForeignPtrFinalizer desktop_fp $ freeHaskellFunPtr enter_handler_funp
 
 outputInit o_ptr desktop_ptr = do
     Desktop {desktopShell = ds} <- peek desktop_ptr
@@ -366,7 +368,6 @@ desktopCreate = do
                                           , desktopWindow = window
                                           , desktopWidget = widget
                                           } -> do
-                -- TODO: need to destroy grabSurfaceEnterHandler here
                 windowDestroy widget window
                 outputDestroy o
                 c_weston_desktop_shell_destroy ds)
@@ -376,7 +377,7 @@ main = do
     global_handler_fp <- mkGlobalHandlerForeign globalHandler
     global_handler_remove_fp <- mkGlobalHandlerRemoveForeign globalHandlerRemove
     displayCreate global_handler_fp global_handler_remove_fp >>= (`withForeignPtr` \display_ptr -> do
-        desktopCreate >>= (`withForeignPtr` \desktop_ptr -> do
+        desktopCreate >>= \desktop_fp -> (withForeignPtr desktop_fp $ \desktop_ptr -> do
             statusCreate display_ptr 800 480 >>= (`withForeignPtr` \status_ptr -> do
                 pokeByteOff desktop_ptr #{offset struct desktop, display} display_ptr
                 c_display_set_user_data display_ptr (castPtr desktop_ptr)
@@ -384,7 +385,7 @@ main = do
                 c_display_set_global_handler_remove display_ptr global_handler_remove_fp
                 o_ptr <- desktopOutput <$> peek desktop_ptr
                 join $ when . (== nullPtr) . outputBackground <$> peek o_ptr <*> pure (outputInit o_ptr desktop_ptr)
-                grabSurfaceCreate desktop_ptr
+                grabSurfaceCreate desktop_fp
                 statusConfigure status_ptr
                 c_display_run display_ptr)))
 
