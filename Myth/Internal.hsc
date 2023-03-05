@@ -113,9 +113,10 @@ instance Storable Surface where
     poke ptr (Surface c_funp) = do
         #{poke struct surface, configure} ptr c_funp
 
-data Listener = Listener (FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ()))
-                         (FunPtr (Ptr () -> Ptr WestonDesktopShell -> IO ()))
-                         (FunPtr (Ptr () -> Ptr WestonDesktopShell -> CursorType -> IO ()))
+data Listener = Listener { listenerConfigure          :: FunPtr (Ptr () -> Ptr WestonDesktopShell -> Word32 -> Ptr WlSurface -> Int32 -> Int32 -> IO ())
+                         , listenerPrepareLockSurface :: FunPtr (Ptr () -> Ptr WestonDesktopShell -> IO ())
+                         , listenerGrabCursor         :: FunPtr (Ptr () -> Ptr WestonDesktopShell -> CursorType -> IO ())
+                         }
 instance Storable Listener where
     sizeOf _    = #{size struct weston_desktop_shell_listener}
     alignment _ = #{alignment struct weston_desktop_shell_listener}

@@ -19,7 +19,6 @@ statusCheck t_ptr _ = do
     Status {statusWidget = widget, statusCheckFd = checkFd} <- peek status_ptr
     fdRead checkFd #{size uint64_t}
     encoders <- getEncodersStatus
-    -- TODO: if the below doesn't work, should we disarm the timer before calling getEncodersStatus, and then re-arm it after? That should avoid multiple statusCheck threads racing with the frees below
     peek status_ptr >>= \status -> do
         -- Free any existing recording_title CStrings and channel_icon StablePtrs, then the array
         old_encoders <- take <$> #{peek struct status, num_encoders} status_ptr <*> (iterate (flip advancePtr 1) <$> #{peek struct status, encoders} status_ptr :: IO [Ptr Encoder])
@@ -319,7 +318,7 @@ createOutput desktop_ptr id = do
         pokeByteOff desktop_ptr #{offset struct desktop, output} o_ptr
         when (ds /= nullPtr) $ outputInit o_ptr desktop_ptr)
 
-globalHandler _ id interface_cs _ d_ptr = do
+globalHandler l_ptr _ id interface_cs _ d_ptr = do
     let desktop_ptr = castPtr d_ptr
     interface <- peekCString interface_cs
     case interface of
@@ -328,9 +327,6 @@ globalHandler _ id interface_cs _ d_ptr = do
             ds_ptr <- castPtr <$> c_display_bind display id c_weston_desktop_shell_interface 1
             pokeByteOff desktop_ptr #{offset struct desktop, shell} ds_ptr
             -- TODO: does l_ptr and the three funps need to be freed anywhere?
-            l_ptr <- new =<< Listener <$> mkDesktopShellConfigureForeign desktopShellConfigure
-                                      <*> mkDesktopShellPrepareLockSurfaceForeign desktopShellPrepareLockSurface
-                                      <*> mkDesktopShellGrabCursorForeign desktopShellGrabCursor
             c_weston_desktop_shell_add_listener ds_ptr l_ptr desktop_ptr
             c_weston_desktop_shell_desktop_ready ds_ptr
         "wl_output" -> createOutput desktop_ptr id
@@ -360,7 +356,7 @@ outputDestroy o_ptr = do
     peek bg >>= \Background {backgroundWindow = window, backgroundWidget = widget} -> windowDestroy widget window
     c_wl_output_destroy wlo
 
-desktopCreate = do
+desktopCreate l_ptr = do
     mallocForeignPtr >>= \desktop_fp -> do
         FC.addForeignPtrFinalizer desktop_fp (withForeignPtr desktop_fp $ \desktop_ptr ->
             peek desktop_ptr >>= \Desktop { desktopShell = ds
@@ -370,14 +366,24 @@ desktopCreate = do
                                           } -> do
                 windowDestroy widget window
                 outputDestroy o
+                -- TODO: make this better
+                l <- peek l_ptr
+                let con = listenerConfigure l
+                let pls = listenerPrepareLockSurface l
+                let gc = listenerGrabCursor l
+                sequence_ [freeHaskellFunPtr con, freeHaskellFunPtr pls, freeHaskellFunPtr gc]
+                free l_ptr
                 c_weston_desktop_shell_destroy ds)
         return desktop_fp
 
 main = do
-    global_handler_fp <- mkGlobalHandlerForeign globalHandler
+    listener <- new =<< Listener <$> mkDesktopShellConfigureForeign desktopShellConfigure
+                                 <*> mkDesktopShellPrepareLockSurfaceForeign desktopShellPrepareLockSurface
+                                 <*> mkDesktopShellGrabCursorForeign desktopShellGrabCursor
+    global_handler_fp <- mkGlobalHandlerForeign $ globalHandler listener
     global_handler_remove_fp <- mkGlobalHandlerRemoveForeign globalHandlerRemove
     displayCreate global_handler_fp global_handler_remove_fp >>= (`withForeignPtr` \display_ptr -> do
-        desktopCreate >>= \desktop_fp -> (withForeignPtr desktop_fp $ \desktop_ptr -> do
+        desktopCreate listener >>= \desktop_fp -> (withForeignPtr desktop_fp $ \desktop_ptr -> do
             statusCreate display_ptr 800 480 >>= (`withForeignPtr` \status_ptr -> do
                 pokeByteOff desktop_ptr #{offset struct desktop, display} display_ptr
                 c_display_set_user_data display_ptr (castPtr desktop_ptr)
