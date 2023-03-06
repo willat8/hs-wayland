@@ -70,6 +70,7 @@ statusConfigure status_ptr = do
            } <- peek status_ptr
     c_display_watch_fd display checkFd epollin (#{ptr struct status, check_task} status_ptr)
     with (ITimerSpec (TimeSpec 30 0) (TimeSpec 1 0)) $ \its_ptr -> c_timerfd_settime checkFd 0 its_ptr nullPtr
+    -- TODO: free the below funps
     c_widget_set_resize_handler widget =<< mkResizeHandlerForeign resizeHandler
     c_widget_set_redraw_handler widget =<< mkRedrawHandlerForeign redrawHandler
     c_widget_set_button_handler widget =<< mkButtonHandlerForeign buttonHandler
@@ -82,6 +83,7 @@ statusCreate display_ptr w h = do
         window_ptr <- c_window_create display_ptr
         widget_ptr <- c_window_add_widget window_ptr (castPtr status_ptr)
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
+        -- TODO: free funp
         check_task <- Task <$> mkTimerTaskForeign statusCheck
         poke status_ptr Status { statusDisplay = display_ptr
                                , statusWindow = window_ptr
@@ -170,6 +172,7 @@ alertTouchDownHandler _ input_ptr _ _ _ x _ d_ptr = do
     when (nodeButtons == [] && showDashboard && x < 111) $ do
         node_fps <- zipWithM (nodeButtonCreate widget) ["control-plane-1", "control-plane-2", "control-plane-3"] [200, 400, 600]
         let Task hideFp = hideTask in freeHaskellFunPtr hideFp
+        -- TODO: free funp
         hide_task <- Task <$> mkTimerTaskForeign (alertHide node_fps)
         withForeignPtrs node_fps $ \node_ptrs ->
             peek alert_ptr >>= \alert -> poke alert_ptr alert { alertNodeButtons = node_ptrs, alertHideTask = hide_task }
@@ -181,9 +184,11 @@ alertCreate display_ptr window_ptr = do
     mallocForeignPtr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
         widget_ptr <- c_window_add_subsurface window_ptr (castPtr alert_ptr) subsurfaceDesynchronized
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
+        -- TODO: free funp
         check_task <- Task <$> mkTimerTaskForeign alertCheck
         hide_fd <- c_timerfd_create clockMonotonic tfdCloexec
         null_fp <- newForeignPtr_ nullPtr
+        -- TODO: free funp
         hide_task <- Task <$> mkTimerTaskForeign (alertHide [])
         poke alert_ptr Alert { alertWidget = widget_ptr
                              , alertCheckFd = check_fd
@@ -277,9 +282,11 @@ backgroundCreate desktop_ptr = do
         Desktop {desktopDisplay = display} <- peek desktop_ptr
         base <- Surface <$> mkSurfaceConfigureForeign backgroundConfigure
         window_ptr <- c_window_create_custom display
-        peek bg_ptr >>= \bg -> poke bg_ptr bg { backgroundSurface = base, backgroundWindow = window_ptr }
         widget_ptr <- c_window_add_widget window_ptr (castPtr bg_ptr)
-        pokeByteOff bg_ptr #{offset struct background, widget} widget_ptr
+        peek bg_ptr >>= \bg -> poke bg_ptr bg { backgroundSurface = base
+                                              , backgroundWindow = window_ptr
+                                              , backgroundWidget = widget_ptr
+                                              }
         c_window_set_user_data window_ptr (castPtr bg_ptr)
         c_widget_set_transparent widget_ptr 0
         return bg_fp
@@ -326,7 +333,6 @@ globalHandler l_ptr _ id interface_cs _ d_ptr = do
             Desktop {desktopDisplay = display} <- peek desktop_ptr
             ds_ptr <- castPtr <$> c_display_bind display id c_weston_desktop_shell_interface 1
             pokeByteOff desktop_ptr #{offset struct desktop, shell} ds_ptr
-            -- TODO: does l_ptr and the three funps need to be freed anywhere?
             c_weston_desktop_shell_add_listener ds_ptr l_ptr desktop_ptr
             c_weston_desktop_shell_desktop_ready ds_ptr
         "wl_output" -> createOutput desktop_ptr id
@@ -366,12 +372,9 @@ desktopCreate l_ptr = do
                                           } -> do
                 windowDestroy widget window
                 outputDestroy o
-                -- TODO: make this better
-                l <- peek l_ptr
-                let con = listenerConfigure l
-                let pls = listenerPrepareLockSurface l
-                let gc = listenerGrabCursor l
-                sequence_ [freeHaskellFunPtr con, freeHaskellFunPtr pls, freeHaskellFunPtr gc]
+                peek l_ptr >>= \l ->
+                    let funps = [castFunPtr . listenerConfigure, castFunPtr . listenerPrepareLockSurface, castFunPtr . listenerGrabCursor] <*> pure l
+                    in mapM_ freeHaskellFunPtr funps
                 free l_ptr
                 c_weston_desktop_shell_destroy ds)
         return desktop_fp
