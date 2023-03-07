@@ -60,30 +60,11 @@ touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
 keyHandler _ _ _ _ _ state d_ptr = do
     return ()
 
-statusConfigure status_ptr = do
-    Status { statusDisplay = display
-           , statusWindow = window
-           , statusWidget = widget
-           , statusWidth = w
-           , statusHeight = h
-           , statusCheckFd = checkFd
-           } <- peek status_ptr
-    c_display_watch_fd display checkFd epollin (#{ptr struct status, check_task} status_ptr)
-    with (ITimerSpec (TimeSpec 30 0) (TimeSpec 1 0)) $ \its_ptr -> c_timerfd_settime checkFd 0 its_ptr nullPtr
-    -- TODO: free the below funps
-    c_widget_set_resize_handler widget =<< mkResizeHandlerForeign resizeHandler
-    c_widget_set_redraw_handler widget =<< mkRedrawHandlerForeign redrawHandler
-    c_widget_set_button_handler widget =<< mkButtonHandlerForeign buttonHandler
-    c_widget_set_touch_down_handler widget =<< mkTouchDownHandlerForeign touchDownHandler
-    c_window_set_key_handler window =<< mkKeyHandlerForeign keyHandler
-    c_window_schedule_resize window w h
-
 statusCreate display_ptr w h = do
     mallocForeignPtr >>= \status_fp -> withForeignPtr status_fp $ \status_ptr -> do
         window_ptr <- c_window_create display_ptr
         widget_ptr <- c_window_add_widget window_ptr (castPtr status_ptr)
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
-        -- TODO: free funp
         check_task <- Task <$> mkTimerTaskForeign statusCheck
         poke status_ptr Status { statusDisplay = display_ptr
                                , statusWindow = window_ptr
@@ -96,12 +77,31 @@ statusCreate display_ptr w h = do
                                , statusEncoders = []
                                }
         c_window_set_user_data window_ptr (castPtr status_ptr)
-        alertCreate display_ptr window_ptr >>= \alert_fp ->
-            FC.addForeignPtrFinalizer status_fp $ do
-                finalizeForeignPtr alert_fp
-                c_display_unwatch_fd display_ptr check_fd
-                closeFd check_fd
-                windowDestroy widget_ptr window_ptr
+        c_display_watch_fd display_ptr check_fd epollin (#{ptr struct status, check_task} status_ptr)
+        with (ITimerSpec (TimeSpec 30 0) (TimeSpec 1 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
+        resize_funp <- mkResizeHandlerForeign resizeHandler
+        redraw_funp <- mkRedrawHandlerForeign redrawHandler
+        button_funp <- mkButtonHandlerForeign buttonHandler
+        touch_funp <- mkTouchDownHandlerForeign touchDownHandler
+        key_funp <- mkKeyHandlerForeign keyHandler
+        c_widget_set_resize_handler widget_ptr resize_funp
+        c_widget_set_redraw_handler widget_ptr redraw_funp
+        c_widget_set_button_handler widget_ptr button_funp
+        c_widget_set_touch_down_handler widget_ptr touch_funp
+        c_window_set_key_handler window_ptr key_funp
+        c_window_schedule_resize window_ptr w h
+        alertCreate display_ptr window_ptr
+        FC.addForeignPtrFinalizer status_fp $ do
+            let Task check_funp = check_task in mapM_ freeHaskellFunPtr [ castFunPtr check_funp
+                                                                        , castFunPtr resize_funp
+                                                                        , castFunPtr redraw_funp
+                                                                        , castFunPtr button_funp
+                                                                        , castFunPtr touch_funp
+                                                                        , castFunPtr key_funp
+                                                                        ]
+            c_display_unwatch_fd display_ptr check_fd
+            closeFd check_fd
+            windowDestroy widget_ptr window_ptr
         return status_fp
 
 alertCheck t_ptr _ = do
@@ -223,9 +223,10 @@ alertCreate display_ptr window_ptr = do
             closeFd check_fd
             closeFd hide_fd
             withForeignPtr alert_fp $ free <=< #{peek struct alert, node_buttons}
-            freeHaskellFunPtr redraw_funp
-            freeHaskellFunPtr resize_funp
-            freeHaskellFunPtr touch_funp
+            mapM_ freeHaskellFunPtr [ castFunPtr resize_funp
+                                    , castFunPtr redraw_funp
+                                    , castFunPtr touch_funp
+                                    ]
             c_widget_destroy widget_ptr
         return alert_fp
 
@@ -256,8 +257,7 @@ nodeButtonCreate alert_ptr hostname x = do
         c_widget_set_allocation widget_ptr (x - 60) 400 120 80
         FC.addForeignPtrFinalizer node_fp $ do
             withForeignPtr node_fp $ free <=< #{peek struct node_button, hostname}
-            freeHaskellFunPtr redraw_funp
-            freeHaskellFunPtr touch_funp
+            mapM_ freeHaskellFunPtr [castFunPtr redraw_funp, castFunPtr touch_funp]
             c_widget_destroy widget_ptr
         return node_fp
 
@@ -291,7 +291,6 @@ backgroundCreate desktop_ptr = do
         c_widget_set_transparent widget_ptr 0
         return bg_fp
 
--- Reviewed from the bottom up to here
 grabSurfaceEnterHandler _ _ _ _ d_ptr = desktopCursorType <$> peek (castPtr d_ptr)
 
 grabSurfaceCreate desktop_fp = withForeignPtr desktop_fp $ \desktop_ptr -> do
@@ -387,16 +386,14 @@ main = do
     global_handler_remove_fp <- mkGlobalHandlerRemoveForeign globalHandlerRemove
     displayCreate global_handler_fp global_handler_remove_fp >>= (`withForeignPtr` \display_ptr -> do
         desktopCreate listener >>= \desktop_fp -> (withForeignPtr desktop_fp $ \desktop_ptr -> do
-            statusCreate display_ptr 800 480 >>= (`withForeignPtr` \status_ptr -> do
-                pokeByteOff desktop_ptr #{offset struct desktop, display} display_ptr
-                c_display_set_user_data display_ptr (castPtr desktop_ptr)
-                c_display_set_global_handler display_ptr global_handler_fp
-                c_display_set_global_handler_remove display_ptr global_handler_remove_fp
-                o_ptr <- desktopOutput <$> peek desktop_ptr
-                join $ when . (== nullPtr) . outputBackground <$> peek o_ptr <*> pure (outputInit o_ptr desktop_ptr)
-                grabSurfaceCreate desktop_fp
-                statusConfigure status_ptr
-                c_display_run display_ptr)))
+            pokeByteOff desktop_ptr #{offset struct desktop, display} display_ptr
+            c_display_set_user_data display_ptr (castPtr desktop_ptr)
+            c_display_set_global_handler display_ptr global_handler_fp
+            c_display_set_global_handler_remove display_ptr global_handler_remove_fp
+            o_ptr <- desktopOutput <$> peek desktop_ptr
+            join $ when . (== nullPtr) . outputBackground <$> peek o_ptr <*> pure (outputInit o_ptr desktop_ptr)
+            grabSurfaceCreate desktop_fp
+            statusCreate display_ptr 800 480 >>= (`withForeignPtr` \_ -> c_display_run display_ptr)))
 
 -- f([fps]) -> f([ptrs])
 withForeignPtrs :: [ForeignPtr a] -> ([Ptr a] -> IO b) -> IO ()
