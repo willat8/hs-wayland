@@ -187,7 +187,7 @@ alertCreate display_ptr window_ptr = do
         -- TODO: free funp
         check_task <- Task <$> mkTimerTaskForeign alertCheck
         hide_fd <- c_timerfd_create clockMonotonic tfdCloexec
-        null_fp <- newForeignPtr_ nullPtr
+        --null_fp <- newForeignPtr_ nullPtr
         -- TODO: free funp
         hide_task <- Task <$> mkTimerTaskForeign (alertHide [])
         poke alert_ptr Alert { alertWidget = widget_ptr
