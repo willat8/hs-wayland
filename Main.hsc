@@ -222,6 +222,7 @@ alertCreate display_ptr window_ptr = do
             c_display_unwatch_fd display_ptr hide_fd
             closeFd check_fd
             closeFd hide_fd
+            -- Call alertHide here instead?
             withForeignPtr alert_fp $ free <=< #{peek struct alert, node_buttons}
             mapM_ freeHaskellFunPtr [ castFunPtr resize_funp
                                     , castFunPtr redraw_funp
