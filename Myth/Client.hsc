@@ -30,11 +30,11 @@ statusCheck t_ptr _ = do
                                }
     c_widget_schedule_redraw widget
 
-resizeHandler _ _ _ d_ptr = do
+statusResizeHandler _ _ _ d_ptr = do
     Status {statusWidget = widget, statusWidth = w, statusHeight = h} <- peek (castPtr d_ptr)
     c_widget_set_size widget w h
 
-redrawHandler _ d_ptr = do
+statusRedrawHandler _ d_ptr = do
     let status_ptr = castPtr d_ptr
     Status { statusWindow = window
            , statusWidth = w
@@ -50,13 +50,13 @@ redrawHandler _ d_ptr = do
             pokeByteOff status_ptr #{offset struct status, show_clock} True
         otherwise -> drawClock xpsurface (fromIntegral w) (fromIntegral h) encoders
 
-buttonHandler _ input_ptr _ _ state d_ptr = do
+statusButtonHandler _ input_ptr _ _ state d_ptr = do
     return ()
 
-touchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
+statusTouchDownHandler _ input_ptr _ _ _ _ _ d_ptr = do
     return ()
 
-keyHandler _ _ _ _ _ state d_ptr = do
+statusKeyHandler _ _ _ _ _ state d_ptr = do
     return ()
 
 statusCreate display_ptr w h = do
@@ -78,11 +78,11 @@ statusCreate display_ptr w h = do
         c_window_set_user_data window_ptr (castPtr status_ptr)
         c_display_watch_fd display_ptr check_fd epollin (#{ptr struct status, check_task} status_ptr)
         with (ITimerSpec (TimeSpec 30 0) (TimeSpec 1 0)) $ \its_ptr -> c_timerfd_settime check_fd 0 its_ptr nullPtr
-        resize_funp <- mkResizeHandlerForeign resizeHandler
-        redraw_funp <- mkRedrawHandlerForeign redrawHandler
-        button_funp <- mkButtonHandlerForeign buttonHandler
-        touch_funp <- mkTouchDownHandlerForeign touchDownHandler
-        key_funp <- mkKeyHandlerForeign keyHandler
+        resize_funp <- mkResizeHandlerForeign statusResizeHandler
+        redraw_funp <- mkRedrawHandlerForeign statusRedrawHandler
+        button_funp <- mkButtonHandlerForeign statusButtonHandler
+        touch_funp <- mkTouchDownHandlerForeign statusTouchDownHandler
+        key_funp <- mkKeyHandlerForeign statusKeyHandler
         c_widget_set_resize_handler widget_ptr resize_funp
         c_widget_set_redraw_handler widget_ptr redraw_funp
         c_widget_set_button_handler widget_ptr button_funp
