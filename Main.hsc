@@ -345,7 +345,7 @@ globalHandlerRemove _ _ interface_cs _ d_ptr = do
 
 displayCreate global_handler_fp global_handler_remove_fp = do
     display_ptr <- alloca $ \argv -> c_display_create 0 argv
-    display_fp <- newForeignPtr_ display_ptr
+    display_fp <- newForeignPtr finalizerFree display_ptr
     FC.addForeignPtrFinalizer display_fp (withForeignPtr display_fp $ \display_ptr -> do
         freeHaskellFunPtr global_handler_fp
         freeHaskellFunPtr global_handler_remove_fp
@@ -393,8 +393,7 @@ main = do
             o_ptr <- desktopOutput <$> peek desktop_ptr
             join $ when . (== nullPtr) . outputBackground <$> peek o_ptr <*> pure (outputInit o_ptr desktop_ptr)
             grabSurfaceCreate desktop_fp
-            statusCreate display_ptr 800 480 >>= (`withForeignPtr` \_ ->
-                c_display_run display_ptr)))
+            statusCreate display_ptr 800 480 >>= (`withForeignPtr` (const <$> c_display_run) display_ptr)))
 
 -- f([fps]) -> f([ptrs])
 withForeignPtrs :: [ForeignPtr a] -> ([Ptr a] -> IO b) -> IO ()
