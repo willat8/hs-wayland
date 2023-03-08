@@ -172,7 +172,6 @@ alertTouchDownHandler _ input_ptr _ _ _ x _ d_ptr = do
     when (nodeButtons == [] && showDashboard && x < 111) $ do
         node_fps <- zipWithM (nodeButtonCreate widget) ["control-plane-1", "control-plane-2", "control-plane-3"] [200, 400, 600]
         let Task hideFp = hideTask in freeHaskellFunPtr hideFp
-        -- TODO: free funp
         hide_task <- Task <$> mkTimerTaskForeign (alertHide node_fps)
         withForeignPtrs node_fps $ \node_ptrs ->
             peek alert_ptr >>= \alert -> poke alert_ptr alert { alertNodeButtons = node_ptrs, alertHideTask = hide_task }
@@ -184,11 +183,8 @@ alertCreate display_ptr window_ptr = do
     mallocForeignPtr >>= \alert_fp -> withForeignPtr alert_fp $ \alert_ptr -> do
         widget_ptr <- c_window_add_subsurface window_ptr (castPtr alert_ptr) subsurfaceDesynchronized
         check_fd <- c_timerfd_create clockMonotonic tfdCloexec
-        -- TODO: free funp
         check_task <- Task <$> mkTimerTaskForeign alertCheck
         hide_fd <- c_timerfd_create clockMonotonic tfdCloexec
-        --null_fp <- newForeignPtr_ nullPtr
-        -- TODO: free funp
         hide_task <- Task <$> mkTimerTaskForeign (alertHide [])
         poke alert_ptr Alert { alertWidget = widget_ptr
                              , alertCheckFd = check_fd
@@ -222,8 +218,11 @@ alertCreate display_ptr window_ptr = do
             c_display_unwatch_fd display_ptr hide_fd
             closeFd check_fd
             closeFd hide_fd
-            -- Call alertHide here instead?
-            withForeignPtr alert_fp $ free <=< #{peek struct alert, node_buttons}
+            let Task checkFp = check_task in freeHaskellFunPtr checkFp
+            withForeignPtr alert_fp $ \alert_ptr -> do
+                free =<< #{peek struct alert, node_buttons} alert_ptr
+                Task hideFp <- alertHideTask <$> peek alert_ptr
+                freeHaskellFunPtr hideFp
             mapM_ freeHaskellFunPtr [ castFunPtr resize_funp
                                     , castFunPtr redraw_funp
                                     , castFunPtr touch_funp
@@ -394,14 +393,14 @@ main = do
             o_ptr <- desktopOutput <$> peek desktop_ptr
             join $ when . (== nullPtr) . outputBackground <$> peek o_ptr <*> pure (outputInit o_ptr desktop_ptr)
             grabSurfaceCreate desktop_fp
-            statusCreate display_ptr 800 480 >>= (`withForeignPtr` \_ -> c_display_run display_ptr)))
+            statusCreate display_ptr 800 480 >>= (`withForeignPtr` \_ ->
+                c_display_run display_ptr)))
 
 -- f([fps]) -> f([ptrs])
 withForeignPtrs :: [ForeignPtr a] -> ([Ptr a] -> IO b) -> IO ()
 withForeignPtrs [] _ = return ()
-withForeignPtrs (fp:fps) f = withForeignPtr fp $ \ptr -> withForeignPtrs' [ptr] fps f
-
-withForeignPtrs' [] [] f = return ()
-withForeignPtrs' ptrs [] f = f ptrs >> return ()
-withForeignPtrs' ptrs (fp:fps) f = withForeignPtr fp $ \ptr -> withForeignPtrs' (ptrs ++ [ptr]) fps f
+withForeignPtrs (fp:fps) f = withForeignPtr fp $ \ptr -> wfps [ptr] fps f
+                             where wfps [] [] f = return ()
+                                   wfps ptrs [] f = f ptrs >> return ()
+                                   wfps ptrs (fp:fps) f = withForeignPtr fp $ \ptr -> wfps (ptrs ++ [ptr]) fps f
 
