@@ -148,11 +148,12 @@ alertRedrawHandler _ d_ptr = do
           , alertPiholeHealth = isPiholeHealthy
           , alertHueHealth = hueHealth
           , alertShowDashboard = showDashboard
+          , alertNodeButtons = nodeButtons
           } <- peek (castPtr d_ptr)
     xp <- c_widget_cairo_create widget
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
-    drawAlert xpsurface showDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth =<< c_widget_get_last_time widget
+    drawAlert xpsurface (showDashboard && length nodeButtons > 0) babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth =<< c_widget_get_last_time widget
     unless (all id [ babyMonitorHealth == healthy
                    , isHDHomeRunHealthy
                    , isMythTVHealthy
@@ -238,8 +239,6 @@ nodeButtonRedrawHandler _ d_ptr = do
     xp <- c_widget_cairo_create widget
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
-    -- Hacky draw
-    when (hostname == "control-plane-1") $ drawBlank xpsurface
     drawNodeButton xpsurface allocation
 
 nodeButtonTouchDownHandler _ input_ptr _ _ _ x y d_ptr = do
