@@ -345,7 +345,7 @@ globalHandlerRemove _ _ interface_cs _ d_ptr = do
 
 displayCreate global_handler_fp global_handler_remove_fp = do
     display_ptr <- alloca $ \argv -> c_display_create 0 argv
-    display_fp <- newForeignPtr finalizerFree display_ptr
+    display_fp <- newForeignPtr_ display_ptr
     FC.addForeignPtrFinalizer display_fp (withForeignPtr display_fp $ \display_ptr -> do
         freeHaskellFunPtr global_handler_fp
         freeHaskellFunPtr global_handler_remove_fp
