@@ -239,7 +239,7 @@ nodeButtonRedrawHandler _ d_ptr = do
     xp <- c_widget_cairo_create widget
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
-    drawNodeButton xpsurface allocation
+    drawNodeButton xpsurface allocation ("server" ++ show (last hostname))
 
 nodeButtonTouchDownHandler _ input_ptr _ _ _ x y d_ptr = do
     NodeButton {nodeButtonWidget = widget} <- peek (castPtr d_ptr)
