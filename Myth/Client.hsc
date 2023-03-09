@@ -148,12 +148,11 @@ alertRedrawHandler _ d_ptr = do
           , alertPiholeHealth = isPiholeHealthy
           , alertHueHealth = hueHealth
           , alertShowDashboard = showDashboard
-          , alertNodeButtons = nodeButtons
           } <- peek (castPtr d_ptr)
     xp <- c_widget_cairo_create widget
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
-    drawAlert xpsurface (showDashboard && length nodeButtons > 0) babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth =<< c_widget_get_last_time widget
+    drawAlert xpsurface showDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth =<< c_widget_get_last_time widget
     unless (all id [ babyMonitorHealth == healthy
                    , isHDHomeRunHealthy
                    , isMythTVHealthy
@@ -169,14 +168,15 @@ alertTouchDownHandler _ input_ptr _ _ _ x _ d_ptr = do
           , alertShowDashboard = showDashboard
           , alertNodeButtons = nodeButtons
           } <- peek alert_ptr
-    -- If touch hits k8s region
-    when (nodeButtons == [] && showDashboard && x < 111) $ do
+    let isK8sMenuOpen = nodeButtons /= []
+    let shouldOpenK8sMenu = nodeButtons == [] && showDashboard && x < 111
+    when shouldOpenK8sMenu $ do
         node_fps <- zipWithM (nodeButtonCreate widget) ["control-plane-1", "control-plane-2", "control-plane-3"] [200, 400, 600]
         let Task hideFp = hideTask in freeHaskellFunPtr hideFp
         hide_task <- Task <$> mkTimerTaskForeign (alertHide node_fps)
         withForeignPtrs node_fps $ \node_ptrs ->
             peek alert_ptr >>= \alert -> poke alert_ptr alert { alertNodeButtons = node_ptrs, alertHideTask = hide_task }
-    pokeByteOff alert_ptr #{offset struct alert, show_dashboard} True
+    pokeByteOff alert_ptr #{offset struct alert, show_dashboard} (not isK8sMenuOpen && not shouldOpenK8sMenu)
     with (ITimerSpec (TimeSpec 0 0) (TimeSpec 30 0)) $ \its_ptr -> c_timerfd_settime hideFd 0 its_ptr nullPtr
     c_widget_schedule_redraw widget
 
