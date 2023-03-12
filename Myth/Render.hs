@@ -113,14 +113,15 @@ readFromPngStream file_ptr buffer_ptr count = do
   bytes_read <- M.c_fread buffer_ptr 1 count file_ptr
   return $ if (bytes_read /= count) then M.cairoStatusReadError else M.cairoStatusSuccess
 
-drawAlert surface showDashboard@True babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth _ = renderWith surface $ do
+drawAlert surface _ hideAlert@True _ _ _ _ _ _ = drawBlank surface
+drawAlert surface showDashboard@True _ babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth _ = renderWith surface $ do
     drawDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth
-drawAlert surface showDashboard@False babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth time
+drawAlert surface showDashboard@False _ babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth time
     | (babyMonitorHealth == healthy &&
        isHDHomeRunHealthy &&
        isMythTVHealthy &&
        isPiholeHealthy &&
-       hueHealth == healthy) = renderWith surface $ do drawBlank'
+       hueHealth == healthy) = drawBlank surface
     | otherwise              = renderWith surface $ do drawMarquee time
 
 drawBlank surface = renderWith surface drawBlank'

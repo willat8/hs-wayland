@@ -148,17 +148,19 @@ alertRedrawHandler _ d_ptr = do
           , alertPiholeHealth = isPiholeHealthy
           , alertHueHealth = hueHealth
           , alertShowDashboard = showDashboard
+          , alertNodeButtons = nodeButtons
           } <- peek (castPtr d_ptr)
     xp <- c_widget_cairo_create widget
     xpsurface <- XP.mkSurface =<< c_cairo_get_target xp
     c_cairo_destroy xp
-    drawAlert xpsurface showDashboard babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth =<< c_widget_get_last_time widget
-    unless (all id [ babyMonitorHealth == healthy
-                   , isHDHomeRunHealthy
-                   , isMythTVHealthy
-                   , isPiholeHealthy
-                   , hueHealth == healthy
-                   ]) $ c_widget_schedule_redraw widget
+    let hideAlert = length nodeButtons /= 0
+    drawAlert xpsurface showDashboard hideAlert babyMonitorHealth isHDHomeRunHealthy isMythTVHealthy isPiholeHealthy hueHealth =<< c_widget_get_last_time widget
+    unless (hideAlert || all id [ babyMonitorHealth == healthy
+                                , isHDHomeRunHealthy
+                                , isMythTVHealthy
+                                , isPiholeHealthy
+                                , hueHealth == healthy
+                                ]) $ c_widget_schedule_redraw widget
 
 alertTouchDownHandler _ input_ptr _ _ _ x _ d_ptr = do
     let alert_ptr = castPtr d_ptr
