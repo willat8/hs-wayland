@@ -256,5 +256,5 @@ drawKubernetesNodeIcon colour name = do
   return ()
 
 -- See https://raw.githubusercontent.com/kubernetes/community/6027e4d729d9cd1d23489056926f73b2de97afaa/icons/svg/resources/labeled/deploy.svg
-drawKubernetesRebootIcon = do
-  return ()
+--drawKubernetesRebootIcon = do
+--  return ()
